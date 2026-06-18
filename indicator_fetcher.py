@@ -109,11 +109,23 @@ def fetch_indicators():
 
     # DB 저장
     db = sqlite3.connect(DB_PATH)
+    now = datetime.now(timezone.utc).isoformat()
     for name, val, chg in indicators:
         db.execute(
             "INSERT OR REPLACE INTO indicators (name, value, change_pct, updated_at) VALUES (?, ?, ?, ?)",
-            (name, val, chg, datetime.now(timezone.utc).isoformat()),
+            (name, val, chg, now),
         )
+        # 히스토리도 기록 (분 단위 중복 방지)
+        now_minute = now[:16]
+        last_hist = db.execute(
+            "SELECT recorded_at FROM indicator_history WHERE name=? ORDER BY recorded_at DESC LIMIT 1",
+            (name,)
+        ).fetchone()
+        if not last_hist or last_hist[0][:16] < now_minute:
+            db.execute(
+                "INSERT INTO indicator_history (name, value, recorded_at) VALUES (?, ?, ?)",
+                (name, val, now)
+            )
     db.commit()
     db.close()
     print(f"[{datetime.now().strftime('%H:%M:%S')}] 지표 {len(indicators)}건 업데이트")

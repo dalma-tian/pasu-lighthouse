@@ -5,6 +5,66 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>파수의 등대 — 경제 캘린더</title>
     <link rel="stylesheet" href="/static/style.css">
+    <style>
+        .view-toggle {
+            display: flex; gap: 8px; margin-bottom: 16px;
+        }
+        .view-toggle button {
+            padding: 8px 16px; border: 1.5px solid #ddd; border-radius: 8px;
+            background: #fff; cursor: pointer; font-size: 14px; font-family: inherit;
+        }
+        .view-toggle button.active {
+            background: #3b82f6; color: #fff; border-color: #3b82f6;
+        }
+        .cal-grid-wrap { display: none; }
+        .cal-grid-wrap.active { display: block; }
+        .cal-month { margin-bottom: 24px; }
+        .cal-month-title {
+            font-size: 16px; font-weight: 700; margin-bottom: 10px; color: #333;
+        }
+        .cal-weekdays, .cal-days {
+            display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px;
+        }
+        .cal-weekdays span {
+            text-align: center; font-size: 11px; color: #999; padding: 4px 0;
+            font-weight: 600;
+        }
+        .cal-weekdays span:first-child { color: #e53e3e; }
+        .cal-weekdays span:last-child { color: #3b82f6; }
+        .cal-day {
+            aspect-ratio: 1; display: flex; flex-direction: column; align-items: center;
+            justify-content: flex-start; padding: 4px; border-radius: 6px;
+            font-size: 12px; background: #fafafa; min-height: 48px;
+            position: relative;
+        }
+        .cal-day.empty { background: transparent; }
+        .cal-day.today { background: #eff6ff; font-weight: 700; }
+        .cal-day .day-num { font-weight: 500; }
+        .cal-day .day-dots {
+            display: flex; flex-wrap: wrap; gap: 1px; justify-content: center;
+            margin-top: 2px; max-width: 100%;
+        }
+        .cal-day .day-dot {
+            width: 5px; height: 5px; border-radius: 50%;
+        }
+        .cal-day .day-dot.us { background: #3b82f6; }
+        .cal-day .day-dot.kr { background: #e53e3e; }
+        .cal-day .day-dot.both { background: #8b5cf6; }
+        .cal-day .day-label {
+            font-size: 9px; color: #666; text-align: center; line-height: 1.2;
+            margin-top: 1px; overflow: hidden; max-width: 100%;
+        }
+        @media (max-width: 600px) {
+            .cal-day { min-height: 38px; padding: 2px; font-size: 11px; }
+            .cal-day .day-label { font-size: 8px; }
+            .cal-day .day-dot { width: 4px; height: 4px; }
+        }
+        .cal-legend {
+            display: flex; gap: 16px; margin-bottom: 16px; font-size: 12px; color: #888;
+        }
+        .cal-legend span { display: flex; align-items: center; gap: 4px; }
+        .cal-legend .dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+    </style>
 </head>
 <body>
 <nav class="topbar">
@@ -20,10 +80,15 @@
 <main class="feed">
     <div class="feed-header">
         <h2 style="margin:0;font-size:18px">📅 2026년 경제 일정</h2>
+        <div class="view-toggle">
+            <button id="btn-list" class="active" onclick="switchView('list')">📋 리스트</button>
+            <button id="btn-cal" onclick="switchView('cal')">📅 달력</button>
+        </div>
     </div>
 
-    {% if events %}
-    <div class="calendar-list">
+    <!-- List View -->
+    <div id="listView" class="calendar-list">
+        {% if events %}
         {% set ns = namespace(current_month='') %}
         {% for event in events %}
         {% set month = event.event_date[:7] %}
@@ -49,13 +114,142 @@
             </div>
         </div>
         {% endfor %}
+        {% else %}
+        <div class="empty"><p>📅 아직 등록된 일정이 없습니다.</p></div>
+        {% endif %}
     </div>
-    {% else %}
-    <div class="empty">
-        <p>📅 아직 등록된 일정이 없습니다.</p>
-        <p>FOMC, 금통위, 주요 경제지표 발표일이 자동으로 채워집니다.</p>
+
+    <!-- Calendar Grid View -->
+    <div id="calView" class="cal-grid-wrap">
+        <div class="cal-legend">
+            <span><span class="dot us"></span> 미국</span>
+            <span><span class="dot kr"></span> 한국</span>
+            <span><span class="dot both"></span> 양국</span>
+        </div>
+        <div id="calMonths"></div>
     </div>
-    {% endif %}
 </main>
+
+<script>
+// Event data from server
+var EVENT_DATA = [
+    {% for event in events %}
+    {date:"{{ event.event_date }}", name:"{{ event.event_name }}", country:"{{ event.country }}"}{% if not loop.last %},{% endif %}
+    {% endfor %}
+];
+
+function buildEventMap() {
+    var map = {};
+    EVENT_DATA.forEach(function(ev) {
+        if (!map[ev.date]) map[ev.date] = [];
+        map[ev.date].push(ev);
+    });
+    return map;
+}
+
+function buildCalendar() {
+    var eventMap = buildEventMap();
+    var months = [
+        {ym:'2026-06', label:'6월'},
+        {ym:'2026-07', label:'7월'},
+        {ym:'2026-08', label:'8월'},
+        {ym:'2026-09', label:'9월'},
+        {ym:'2026-10', label:'10월'},
+        {ym:'2026-11', label:'11월'},
+        {ym:'2026-12', label:'12월'}
+    ];
+    var today = new Date().toISOString().slice(0,10);
+    var container = document.getElementById('calMonths');
+    container.innerHTML = '';
+
+    months.forEach(function(m) {
+        var year = parseInt(m.ym.slice(0,4));
+        var month = parseInt(m.ym.slice(5,7));
+        var firstDay = new Date(year, month-1, 1).getDay();
+        var lastDate = new Date(year, month, 0).getDate();
+
+        var wrap = document.createElement('div');
+        wrap.className = 'cal-month';
+
+        var title = document.createElement('div');
+        title.className = 'cal-month-title';
+        title.textContent = m.ym + ' ' + m.label;
+        wrap.appendChild(title);
+
+        // Weekday header
+        var wdRow = document.createElement('div');
+        wdRow.className = 'cal-weekdays';
+        ['일','월','화','수','목','금','토'].forEach(function(w) {
+            var sp = document.createElement('span');
+            sp.textContent = w;
+            wdRow.appendChild(sp);
+        });
+        wrap.appendChild(wdRow);
+
+        // Day grid
+        var grid = document.createElement('div');
+        grid.className = 'cal-days';
+
+        // Empty cells before first day
+        for (var i = 0; i < firstDay; i++) {
+            var div = document.createElement('div');
+            div.className = 'cal-day empty';
+            grid.appendChild(div);
+        }
+
+        // Day cells
+        for (var d = 1; d <= lastDate; d++) {
+            var dateStr = year + '-' + String(month).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+            var div = document.createElement('div');
+            div.className = 'cal-day';
+            if (dateStr === today) div.className += ' today';
+
+            var num = document.createElement('div');
+            num.className = 'day-num';
+            num.textContent = d;
+            div.appendChild(num);
+
+            if (eventMap[dateStr]) {
+                var evs = eventMap[dateStr];
+                var hasUS = evs.some(function(e){return e.country==='US'});
+                var hasKR = evs.some(function(e){return e.country==='KR'});
+
+                var dots = document.createElement('div');
+                dots.className = 'day-dots';
+                var dot = document.createElement('span');
+                dot.className = 'day-dot ' + (hasUS && hasKR ? 'both' : hasUS ? 'us' : 'kr');
+                dots.appendChild(dot);
+                div.appendChild(dots);
+
+                var label = document.createElement('div');
+                label.className = 'day-label';
+                label.textContent = evs[0].name.slice(0,8);
+                div.appendChild(label);
+
+                if (evs.length > 1) {
+                    div.title = evs.map(function(e){return e.name}).join(', ');
+                }
+            }
+            grid.appendChild(div);
+        }
+        wrap.appendChild(grid);
+        container.appendChild(wrap);
+    });
+}
+
+function switchView(view) {
+    document.getElementById('btn-list').classList.toggle('active', view==='list');
+    document.getElementById('btn-cal').classList.toggle('active', view==='cal');
+    document.getElementById('listView').style.display = view==='list' ? 'block' : 'none';
+    var calView = document.getElementById('calView');
+    calView.classList.toggle('active', view==='cal');
+    if (view==='cal') buildCalendar();
+    localStorage.setItem('calView', view);
+}
+
+(function() {
+    if (localStorage.getItem('calView') === 'cal') switchView('cal');
+})();
+</script>
 </body>
 </html>

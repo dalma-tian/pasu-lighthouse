@@ -47,6 +47,13 @@ def init_db():
                 change_pct REAL,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
+            CREATE TABLE IF NOT EXISTS indicator_history (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                value REAL NOT NULL,
+                recorded_at TEXT NOT NULL DEFAULT (datetime('now'))
+            );
+            CREATE INDEX IF NOT EXISTS idx_ind_hist ON indicator_history(name, recorded_at);
             CREATE TABLE IF NOT EXISTS stocks (
                 ticker TEXT NOT NULL,
                 name TEXT NOT NULL,

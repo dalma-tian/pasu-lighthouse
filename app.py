@@ -150,6 +150,19 @@ def api_indicators():
     count = indicator_fetcher.fetch_indicators()
     return jsonify({'status': 'ok', 'updated': count})
 
+@app.route('/api/indicator/history/<name>')
+def api_indicator_history(name):
+    """지표별 시계열 히스토리 (최근 60건)"""
+    from urllib.parse import unquote
+    name = unquote(name)
+    db = get_db()
+    rows = db.execute(
+        'SELECT value, recorded_at FROM indicator_history WHERE name = ? ORDER BY recorded_at DESC LIMIT 60',
+        (name,)
+    ).fetchall()
+    db.close()
+    return jsonify([{'value': r['value'], 'date': r['recorded_at'][:10]} for r in reversed(rows)])
+
 if __name__ == '__main__':
     import os
     port = int(os.environ.get('PORT', 5050))

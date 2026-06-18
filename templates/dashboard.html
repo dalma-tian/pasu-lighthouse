@@ -5,6 +5,28 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>파수의 등대 — 지표 대시보드</title>
     <link rel="stylesheet" href="/static/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <style>
+        .indicator-card { cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; }
+        .indicator-card:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.10); }
+        .indicator-card:active { transform: translateY(0); }
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.45); z-index: 1000; justify-content: center; align-items: center;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal-box {
+            background: #fff; border-radius: 16px; padding: 24px; width: 90%; max-width: 700px;
+            max-height: 85vh; position: relative; box-shadow: 0 8px 40px rgba(0,0,0,0.18);
+        }
+        .modal-close {
+            position: absolute; top: 12px; right: 16px; font-size: 22px; cursor: pointer;
+            color: #999; background: none; border: none; line-height: 1;
+        }
+        .modal-close:hover { color: #333; }
+        .chart-wrap { width: 100%; height: 320px; }
+        @media (max-width: 600px) { .chart-wrap { height: 220px; } }
+    </style>
 </head>
 <body>
 <nav class="topbar">
@@ -26,7 +48,7 @@
     {% if indicators %}
     <div class="indicator-grid">
         {% for ind in indicators %}
-        <div class="indicator-card">
+        <div class="indicator-card" onclick="showChart('{{ ind.name }}')">
             <div class="ind-name">{{ ind.name }}</div>
             <div class="ind-value">
                 {% set v = ind.value|float %}
@@ -58,12 +80,22 @@
     {% endif %}
 
     <div style="margin-top:24px;padding:16px;background:white;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,0.04)">
-        <h3 style="margin:0 0 8px 0;font-size:14px;color:#888">📅 경제 캘린더 — 준비 중</h3>
-        <p style="margin:0;font-size:13px;color:#aaa">FOMC, 금통위, CPI, GDP 등 주요 일정이 곧 추가됩니다.</p>
+        <p style="margin:0;font-size:13px;color:#999">💡 지표 카드를 <b>클릭</b>하면 최근 시계열 그래프를 볼 수 있습니다.</p>
     </div>
 </main>
 
+<!-- Chart Modal -->
+<div class="modal-overlay" id="chartModal" onclick="if(event.target===this)closeChart()">
+    <div class="modal-box">
+        <button class="modal-close" onclick="closeChart()">✕</button>
+        <h3 id="chartTitle" style="margin:0 0 8px;font-size:16px"></h3>
+        <div class="chart-wrap"><canvas id="chartCanvas"></canvas></div>
+    </div>
+</div>
+
 <script>
+let chartInstance = null;
+
 async function refreshIndicators() {
     const btn = document.querySelector('.btn-refresh');
     btn.textContent = '⏳ 갱신 중...';
@@ -77,6 +109,54 @@ async function refreshIndicators() {
         btn.textContent = '❌ 실패';
         btn.disabled = false;
     }
+}
+
+async function showChart(name) {
+    document.getElementById('chartModal').classList.add('active');
+    document.getElementById('chartTitle').textContent = '📈 ' + name;
+    try {
+        const resp = await fetch('/api/indicator/history/' + encodeURIComponent(name));
+        const data = await resp.json();
+        const labels = data.map(d => d.date);
+        const values = data.map(d => d.value);
+
+        const ctx = document.getElementById('chartCanvas').getContext('2d');
+        if (chartInstance) chartInstance.destroy();
+        chartInstance = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: name,
+                    data: values,
+                    borderColor: '#3b82f6',
+                    backgroundColor: 'rgba(59,130,246,0.08)',
+                    fill: true,
+                    tension: 0.3,
+                    pointRadius: 2,
+                    pointHoverRadius: 5,
+                    borderWidth: 2.2,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { ticks: { maxTicksLimit: 8, font: { size: 10 } } },
+                    y: { ticks: { font: { size: 10 } } }
+                },
+                interaction: { mode: 'index', intersect: false }
+            }
+        });
+    } catch(e) {
+        console.error(e);
+    }
+}
+
+function closeChart() {
+    document.getElementById('chartModal').classList.remove('active');
+    if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
 }
 </script>
 </body>
