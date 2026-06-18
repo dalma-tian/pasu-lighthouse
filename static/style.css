@@ -67,6 +67,23 @@ body { font-family: -apple-system, 'Segoe UI', sans-serif; background: #f5f6fa; 
 .btn-refresh:hover { background: #3a6ff5; }
 .btn-refresh:disabled { opacity: 0.6; cursor: wait; }
 
+/* ── 지표 카드 그리드 ── */
+.indicator-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+}
+.indicator-card {
+    background: white; border-radius: 12px; padding: 18px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.04); text-align: center;
+    transition: box-shadow .2s;
+}
+.indicator-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
+.ind-name { font-size: 12px; color: #888; margin-bottom: 6px; text-transform: uppercase; letter-spacing: .5px; }
+.ind-value { font-size: 26px; font-weight: 700; color: #1a1a2e; }
+.ind-change { font-size: 13px; margin-top: 4px; font-weight: 600; }
+.ind-change.up { color: #e53935; }
+.ind-change.down { color: #2e7d32; }
+
 /* ── 포트폴리오 추가 폼 ── */
 .add-form {
     background: white; border-radius: 12px; padding: 16px 20px;

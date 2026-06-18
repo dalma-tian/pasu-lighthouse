@@ -112,7 +112,12 @@ def calendar():
 
 @app.route('/dashboard')
 def dashboard():
-    return render_template('dashboard.html')
+    db = get_db()
+    indicators = db.execute(
+        'SELECT * FROM indicators ORDER BY name'
+    ).fetchall()
+    db.close()
+    return render_template('dashboard.html', indicators=indicators)
 
 @app.route('/api/crawl')
 def api_crawl():
@@ -120,6 +125,13 @@ def api_crawl():
     import news_crawler
     count = news_crawler.crawl()
     return jsonify({'status': 'ok', 'new_articles': count})
+
+@app.route('/api/indicators')
+def api_indicators():
+    """지표 수동 갱신 트리거"""
+    import indicator_fetcher
+    count = indicator_fetcher.fetch_indicators()
+    return jsonify({'status': 'ok', 'updated': count})
 
 if __name__ == '__main__':
     import os
