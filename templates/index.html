@@ -53,8 +53,13 @@
             {% endfor %}
         {% else %}
             <div class="empty">
+                {% if current_tab == 'portfolio' %}
+                <p>💼 아직 관심종목을 추가하지 않았거나 관련 뉴스가 없습니다.</p>
+                <p><a href="/watchlist" style="color:#3b82f6;text-decoration:underline">포트폴리오 페이지</a>에서 종목을 추가해보세요.</p>
+                {% else %}
                 <p>📭 아직 수집된 뉴스가 없습니다.</p>
-                <p>뉴스 수집기가 곧 첫 데이터를 가져올 예정입니다.</p>
+                <p>🔄 새로고침 버튼을 눌러 첫 데이터를 가져와보세요.</p>
+                {% endif %}
             </div>
         {% endif %}
     </main>

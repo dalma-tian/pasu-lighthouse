@@ -157,7 +157,7 @@ def api_indicator_history(name):
     name = unquote(name)
     db = get_db()
     rows = db.execute(
-        'SELECT value, recorded_at FROM indicator_history WHERE name = ? ORDER BY recorded_at DESC LIMIT 60',
+        'SELECT value, recorded_at FROM indicator_history WHERE name = ? ORDER BY recorded_at DESC LIMIT 120',
         (name,)
     ).fetchall()
     db.close()
