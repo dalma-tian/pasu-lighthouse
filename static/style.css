@@ -25,6 +25,19 @@ body { font-family: -apple-system, 'Segoe UI', sans-serif; background: #f5f6fa; 
     background: #1a1a2e; color: white; border-color: #1a1a2e;
 }
 
+/* ── 탭 바 (국내/글로벌) ── */
+.tab-bar {
+    display: flex; gap: 4px; padding: 8px 24px;
+    background: white; border-bottom: 1px solid #e0e0e8;
+}
+.tab-bar a {
+    text-decoration: none; padding: 8px 18px; border-radius: 8px;
+    font-size: 14px; color: #666; transition: .2s; font-weight: 500;
+}
+.tab-bar a.active, .tab-bar a:hover {
+    background: #eef0ff; color: #3a6ff5;
+}
+
 .feed { max-width: 720px; margin: 24px auto; padding: 0 16px; }
 
 .card {

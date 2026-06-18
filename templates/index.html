@@ -18,10 +18,16 @@
     </nav>
 
     <div class="filter-bar">
-        <a href="/" class="{% if current_stars == 'all' %}active{% endif %}">전체</a>
-        <a href="/?stars=3">★★★ 필수</a>
-        <a href="/?stars=2">★★ 주요</a>
-        <a href="/?stars=1">★ 참고</a>
+        <a href="/?tab={{ current_tab }}" class="{% if current_stars == 'all' %}active{% endif %}">전체</a>
+        <a href="/?tab={{ current_tab }}&stars=3">★★★ 필수</a>
+        <a href="/?tab={{ current_tab }}&stars=2">★★ 주요</a>
+        <a href="/?tab={{ current_tab }}&stars=1">★ 참고</a>
+    </div>
+
+    <div class="tab-bar">
+        <a href="/?stars={{ current_stars }}" class="{% if current_tab == 'all' %}active{% endif %}">🌐 전체</a>
+        <a href="/?tab=domestic&stars={{ current_stars }}" class="{% if current_tab == 'domestic' %}active{% endif %}">🇰🇷 국내</a>
+        <a href="/?tab=global&stars={{ current_stars }}" class="{% if current_tab == 'global' %}active{% endif %}">🌍 글로벌</a>
     </div>
 
     <main class="feed">

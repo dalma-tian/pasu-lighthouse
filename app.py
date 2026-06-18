@@ -8,6 +8,7 @@ init_db()
 @app.route('/')
 def index():
     stars = request.args.get('stars', 'all')
+    tab = request.args.get('tab', 'all')
     ticker = request.args.get('ticker', '')
 
     db = get_db()
@@ -17,6 +18,10 @@ def index():
     if stars != 'all':
         query += ' AND stars = ?'
         params.append(int(stars))
+    if tab == 'domestic':
+        query += " AND source LIKE '네이버%'"
+    elif tab == 'global':
+        query += " AND source NOT LIKE '네이버%'"
     if ticker:
         query += ' AND (title LIKE ? OR title LIKE ?)'
         params.extend([f'%{ticker}%', f'%{get_name(ticker)}%'])
@@ -24,7 +29,7 @@ def index():
     query += ' ORDER BY stars DESC, published_at DESC LIMIT 50'
     news_list = db.execute(query, params).fetchall()
     db.close()
-    return render_template('index.html', news_list=news_list, current_stars=stars)
+    return render_template('index.html', news_list=news_list, current_stars=stars, current_tab=tab)
 
 @app.route('/api/news')
 def api_news():
