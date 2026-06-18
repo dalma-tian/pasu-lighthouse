@@ -111,6 +111,45 @@ def init_db():
                 'INSERT INTO calendar (event_name, event_date, event_time, country, importance, category) VALUES (?,?,?,?,?,?)',
                 cal_seed
             )
+        # watchlist CSV 복원 (Render sleep 대응)
+        restore_watchlist(conn)
+    conn.close()
+
+WATCHLIST_CSV = os.path.join(os.path.dirname(__file__), 'data', 'watchlist.csv')
+
+def restore_watchlist(conn):
+    """CSV에서 watchlist 복원 (DB가 비어있을 때)"""
+    count = conn.execute('SELECT COUNT(*) FROM watchlist').fetchone()[0]
+    if count > 0:
+        return
+    if not os.path.exists(WATCHLIST_CSV):
+        return
+    try:
+        with open(WATCHLIST_CSV, 'r', encoding='utf-8') as f:
+            reader = csv.reader(f)
+            header = next(reader, None)
+            if not header:
+                return
+            for row in reader:
+                if len(row) >= 4:
+                    conn.execute(
+                        'INSERT OR IGNORE INTO watchlist (ticker, name, type, market) VALUES (?,?,?,?)',
+                        (row[0], row[1], row[2], row[3])
+                    )
+        print(f"[watchlist] CSV에서 {conn.execute('SELECT COUNT(*) FROM watchlist').fetchone()[0]}종목 복원됨")
+    except Exception as e:
+        print(f"[WARN] watchlist restore: {e}")
+
+def backup_watchlist():
+    """DB → CSV 백업"""
+    os.makedirs(os.path.dirname(WATCHLIST_CSV), exist_ok=True)
+    conn = sqlite3.connect(DB_PATH)
+    rows = conn.execute('SELECT ticker, name, type, market FROM watchlist ORDER BY added_at DESC').fetchall()
+    with open(WATCHLIST_CSV, 'w', encoding='utf-8', newline='') as f:
+        writer = csv.writer(f)
+        writer.writerow(['ticker', 'name', 'type', 'market'])
+        for row in rows:
+            writer.writerow(row)
     conn.close()
 
 def get_db():

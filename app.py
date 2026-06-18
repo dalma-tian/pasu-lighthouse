@@ -1,5 +1,6 @@
 from flask import Flask, render_template, request, jsonify
-from models import init_db, get_db
+import sqlite3
+from models import init_db, get_db, backup_watchlist
 import scorer
 
 app = Flask(__name__)
@@ -98,6 +99,7 @@ def watchlist():
                     (ticker, name, item_type, market)
                 )
                 db.commit()
+                backup_watchlist()
             except sqlite3.IntegrityError:
                 pass  # 중복 무시
         db.close()
@@ -115,6 +117,7 @@ def watchlist_delete(item_id):
     db = get_db()
     db.execute('DELETE FROM watchlist WHERE id = ?', (item_id,))
     db.commit()
+    backup_watchlist()
     db.close()
     return '', 204
 
@@ -150,7 +153,7 @@ def api_indicators():
     count = indicator_fetcher.fetch_indicators()
     return jsonify({'status': 'ok', 'updated': count})
 
-@app.route('/api/indicator/history/<name>')
+@app.route('/api/indicator/history/<path:name>')
 def api_indicator_history(name):
     """지표별 시계열 히스토리 (최근 60건)"""
     from urllib.parse import unquote

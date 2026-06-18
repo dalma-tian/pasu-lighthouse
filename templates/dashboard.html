@@ -119,6 +119,7 @@ async function showChart(name) {
         const data = await resp.json();
         const labels = data.map(d => d.date);
         const values = data.map(d => d.value);
+        const isSingle = values.length <= 1;
 
         const ctx = document.getElementById('chartCanvas').getContext('2d');
         if (chartInstance) chartInstance.destroy();
@@ -131,11 +132,12 @@ async function showChart(name) {
                     data: values,
                     borderColor: '#3b82f6',
                     backgroundColor: 'rgba(59,130,246,0.08)',
-                    fill: true,
+                    fill: !isSingle,
                     tension: 0.3,
-                    pointRadius: 2,
-                    pointHoverRadius: 5,
-                    borderWidth: 2.2,
+                    pointRadius: isSingle ? 7 : 2,
+                    pointHoverRadius: isSingle ? 9 : 5,
+                    borderWidth: isSingle ? 0 : 2.2,
+                    showLine: !isSingle,
                 }]
             },
             options: {

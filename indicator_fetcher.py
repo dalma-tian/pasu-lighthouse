@@ -1,4 +1,4 @@
-"""파수의 등대 — 경제지표 수집기 (FRED + ECOS + 네이버 + 무료API)"""
+"""파수의 등대 — 경제지표 수집기 (FRED + ECOS + Yahoo + 네이버)"""
 import urllib.request
 import json
 import re
@@ -18,7 +18,7 @@ def fetch_fred(series_id):
     req = urllib.request.Request(url, headers=HEADERS)
     with urllib.request.urlopen(req, timeout=10) as r:
         data = json.loads(r.read())
-    obs = data["observations"]
+    obs = data.get("observations", [])
     if not obs:
         return 0, 0
     latest = obs[0]
@@ -48,8 +48,60 @@ def fetch_fred_history(series_id):
     return history
 
 
+def fetch_ecos():
+    """한국은행 ECOS → 기준금리 (최근값)"""
+    url = f"https://ecos.bok.or.kr/api/StatisticSearch/{ECOS_KEY}/json/kr/1/30/722Y001/A/2000/2026/0101000"
+    req = urllib.request.Request(url, headers=HEADERS)
+    with urllib.request.urlopen(req, timeout=10) as r:
+        data = json.loads(r.read())
+    rows = data["StatisticSearch"]["row"]
+    if rows:
+        latest = rows[-1]
+        return float(latest["DATA_VALUE"]), 0
+    return 0, 0
+
+
+def fetch_ecos_history():
+    """ECOS API → 최근 30건 기준금리 시계열"""
+    url = f"https://ecos.bok.or.kr/api/StatisticSearch/{ECOS_KEY}/json/kr/1/30/722Y001/A/2000/2026/0101000"
+    req = urllib.request.Request(url, headers=HEADERS)
+    with urllib.request.urlopen(req, timeout=10) as r:
+        data = json.loads(r.read())
+    rows = data["StatisticSearch"]["row"]
+    history = []
+    for row in rows:
+        try:
+            # TIME = '2025' (연도) → '2025-01-01'로 변환
+            time_str = row["TIME"]
+            if len(time_str) == 4:
+                time_str = time_str + "-01-01"
+            elif len(time_str) == 6:
+                time_str = time_str[:4] + "-" + time_str[4:] + "-01"
+            history.append((time_str, float(row["DATA_VALUE"])))
+        except (ValueError, KeyError):
+            continue
+    return history
+
+
+def fetch_yahoo_history(symbol):
+    """Yahoo Finance → 최근 30일 시계열"""
+    url = f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}?range=1mo&interval=1d"
+    req = urllib.request.Request(url, headers=HEADERS)
+    with urllib.request.urlopen(req, timeout=10) as r:
+        data = json.loads(r.read())
+    result = data["chart"]["result"][0]
+    timestamps = result["timestamp"]
+    quotes = result["indicators"]["quote"][0]["close"]
+    history = []
+    for ts, close in zip(timestamps, quotes):
+        if close is not None:
+            date_str = datetime.fromtimestamp(ts, tz=timezone.utc).strftime("%Y-%m-%d")
+            history.append((date_str, round(close, 2)))
+    return history
+
+
 def fetch_kospi():
-    """네이버 금융 → KOSPI 지수"""
+    """네이버 금융 → KOSPI 현재값"""
     url = "https://finance.naver.com/sise/sise_index.nhn?code=KOSPI"
     req = urllib.request.Request(url, headers=HEADERS)
     with urllib.request.urlopen(req, timeout=10) as r:
@@ -63,84 +115,84 @@ def fetch_kospi():
     return 0, 0
 
 
-def fetch_usdkrw():
-    """무료 환율 API"""
-    url = "https://api.exchangerate-api.com/v4/latest/USD"
-    req = urllib.request.Request(url, headers=HEADERS)
-    with urllib.request.urlopen(req, timeout=10) as r:
-        data = json.loads(r.read())
-    return data["rates"]["KRW"], 0
-
-
-def fetch_ecos():
-    """한국은행 ECOS → 기준금리"""
-    url = f"https://ecos.bok.or.kr/api/StatisticSearch/{ECOS_KEY}/json/kr/1/1/722Y001/A/2025/2026/0101000"
-    req = urllib.request.Request(url, headers=HEADERS)
-    with urllib.request.urlopen(req, timeout=10) as r:
-        data = json.loads(r.read())
-    rows = data["StatisticSearch"]["row"]
-    if rows:
-        latest = rows[-1]
-        return float(latest["DATA_VALUE"]), 0
-    return 0, 0
-
-
 def fetch_indicators():
     """6개 핵심 지표 수집 → DB 저장 (현재값 + 히스토리 30건)"""
     indicators = []
     history_bulk = []  # (name, value, date)
 
-    # FRED 3종 — 현재값 + 30건 히스토리
+    # FRED: 미국 기준금리
     for series_id, name in [("FEDFUNDS", "미국 기준금리"), ("SP500", "S&P500"), ("DCOILWTICO", "WTI 유가")]:
         try:
             val, chg = fetch_fred(series_id)
             indicators.append((name, val, chg))
-            # 히스토리 30건
             hist = fetch_fred_history(series_id)
             for date_str, hval in hist:
                 history_bulk.append((name, hval, date_str))
         except Exception as e:
             print(f"[ERR] FRED {name}: {e}")
 
-    # ECOS: 한국 기준금리
+    # ECOS: 한국 기준금리 + 30건 히스토리
     try:
         val, chg = fetch_ecos()
         indicators.append(("한국 기준금리", val, chg))
-        now_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-        history_bulk.append(("한국 기준금리", val, now_str))
+        hist = fetch_ecos_history()
+        for date_str, hval in hist:
+            history_bulk.append(("한국 기준금리", hval, date_str))
+        print(f"  ECOS history: {len(hist)}건")
     except Exception as e:
         print(f"[ERR] ECOS: {e}")
 
-    # KOSPI
+    # KOSPI: Yahoo Finance 30일 + 네이버 현재값
     try:
         val, chg = fetch_kospi()
         indicators.append(("KOSPI", val, chg))
         now_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
         history_bulk.append(("KOSPI", val, now_str))
+        # Yahoo Finance 과거 데이터
+        try:
+            yh = fetch_yahoo_history("^KS11")
+            for date_str, hval in yh:
+                history_bulk.append(("KOSPI", hval, date_str))
+            print(f"  Yahoo KOSPI history: {len(yh)}건")
+        except Exception as e:
+            print(f"[WARN] Yahoo KOSPI history: {e}")
     except Exception as e:
         print(f"[ERR] KOSPI: {e}")
 
-    # 환율
+    # 환율: FRED DEXKOUS (원/달러)
     try:
-        val, chg = fetch_usdkrw()
+        val, chg = fetch_fred("DEXKOUS")
         indicators.append(("원/달러 환율", val, chg))
-        now_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-        history_bulk.append(("원/달러 환율", val, now_str))
+        hist = fetch_fred_history("DEXKOUS")
+        for date_str, hval in hist:
+            history_bulk.append(("원/달러 환율", hval, date_str))
+        print(f"  FRED 환율 history: {len(hist)}건")
     except Exception as e:
-        print(f"[ERR] 환율: {e}")
+        print(f"[ERR] 환율 (FRED): {e}")
+        # fallback: 무료 API 현재값만
+        try:
+            url = "https://api.exchangerate-api.com/v4/latest/USD"
+            req = urllib.request.Request(url, headers=HEADERS)
+            with urllib.request.urlopen(req, timeout=10) as r:
+                data = json.loads(r.read())
+            val = data["rates"]["KRW"]
+            indicators.append(("원/달러 환율", val, 0))
+            now_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+            history_bulk.append(("원/달러 환율", val, now_str))
+        except Exception as e2:
+            print(f"[ERR] 환율 fallback: {e2}")
 
     # DB 저장
     db = sqlite3.connect(DB_PATH)
     now = datetime.now(timezone.utc).isoformat()
 
-    # 현재값 upsert
     for name, val, chg in indicators:
         db.execute(
             "INSERT OR REPLACE INTO indicators (name, value, change_pct, updated_at) VALUES (?, ?, ?, ?)",
             (name, val, chg, now),
         )
 
-    # 히스토리: 날짜별 중복 제거하고 INSERT OR IGNORE
+    # 히스토리: 날짜별 중복 제거
     seen = set()
     for name, hval, date_str in history_bulk:
         key = (name, date_str)
