@@ -39,9 +39,41 @@ def get_name(ticker):
     names = {'005930': '삼성전자', '000660': 'SK하이닉스', '329180': 'HD현대중공업'}
     return names.get(ticker, ticker)
 
-@app.route('/watchlist')
+@app.route('/watchlist', methods=['GET', 'POST'])
+@app.route('/portfolio', methods=['GET', 'POST'])
 def watchlist():
-    return render_template('watchlist.html')
+    db = get_db()
+    if request.method == 'POST':
+        ticker = request.form.get('ticker', '').strip().upper()
+        name = request.form.get('name', '').strip()
+        item_type = request.form.get('type', 'stock')
+        market = request.form.get('market', 'KOSPI')
+        if ticker and name:
+            try:
+                db.execute(
+                    'INSERT INTO watchlist (ticker, name, type, market) VALUES (?, ?, ?, ?)',
+                    (ticker, name, item_type, market)
+                )
+                db.commit()
+            except sqlite3.IntegrityError:
+                pass  # 중복 무시
+        db.close()
+        return '', 204
+
+    # GET
+    items = db.execute(
+        'SELECT * FROM watchlist ORDER BY added_at DESC'
+    ).fetchall()
+    db.close()
+    return render_template('watchlist.html', items=items)
+
+@app.route('/watchlist/delete/<int:item_id>', methods=['POST'])
+def watchlist_delete(item_id):
+    db = get_db()
+    db.execute('DELETE FROM watchlist WHERE id = ?', (item_id,))
+    db.commit()
+    db.close()
+    return '', 204
 
 @app.route('/calendar')
 def calendar():

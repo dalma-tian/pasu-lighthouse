@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>파수의 등대 — 관심종목</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>파수의 등대 — 포트폴리오</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
@@ -10,16 +11,95 @@
     <h1>🔭 파수의 등대</h1>
     <div class="tabs">
         <a href="/">📰 뉴스</a>
-        <a href="/watchlist" class="active">⭐ 관심</a>
+        <a href="/watchlist" class="active">💼 포트폴리오</a>
         <a href="/calendar">📅 캘린더</a>
         <a href="/dashboard">📊 지표</a>
     </div>
 </nav>
+
 <main class="feed">
-    <div class="empty">
-        <p>⭐ 관심종목 기능은 현재 개발 중입니다.</p>
-        <p>종목 추가, 실시간 시세, 맞춤 뉴스 필터링이 곧 제공됩니다.</p>
+    <!-- 추가 폼 -->
+    <form class="add-form" onsubmit="addItem(event)">
+        <div class="form-row">
+            <input type="text" id="ticker" placeholder="티커 (예: 005930, 228800)" required>
+            <input type="text" id="name" placeholder="종목명 (예: 삼성전자, TIGER 200)" required>
+            <select id="type">
+                <option value="stock">📈 주식</option>
+                <option value="etf">📊 ETF</option>
+            </select>
+            <select id="market">
+                <option value="KOSPI">KOSPI</option>
+                <option value="KOSDAQ">KOSDAQ</option>
+            </select>
+            <button type="submit" class="btn-add">+ 추가</button>
+        </div>
+    </form>
+
+    <!-- 종목 목록 -->
+    <div class="portfolio-table-wrap">
+        {% if items %}
+        <table class="portfolio-table">
+            <thead>
+                <tr>
+                    <th>구분</th>
+                    <th>티커</th>
+                    <th>종목명</th>
+                    <th>시장</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody id="item-list">
+                {% for item in items %}
+                <tr data-id="{{ item.id }}">
+                    <td><span class="badge badge-{{ item.type }}">{{ 'ETF' if item.type == 'etf' else '주식' }}</span></td>
+                    <td class="mono">{{ item.ticker }}</td>
+                    <td>{{ item.name }}</td>
+                    <td>{{ item.market }}</td>
+                    <td><button class="btn-del" onclick="deleteItem({{ item.id }}, this)">✕</button></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="empty">
+            <p>💼 아직 추가된 종목이 없습니다.</p>
+            <p>위 폼에 티커와 종목명을 입력해 추가해보세요. ETF도 가능합니다.</p>
+        </div>
+        {% endif %}
     </div>
 </main>
+
+<script>
+async function addItem(e) {
+    e.preventDefault();
+    const ticker = document.getElementById('ticker').value.trim().toUpperCase();
+    const name = document.getElementById('name').value.trim();
+    const type = document.getElementById('type').value;
+    const market = document.getElementById('market').value;
+    if (!ticker || !name) return;
+
+    const formData = new FormData();
+    formData.append('ticker', ticker);
+    formData.append('name', name);
+    formData.append('type', type);
+    formData.append('market', market);
+
+    await fetch('/watchlist', { method: 'POST', body: formData });
+    location.reload();
+}
+
+async function deleteItem(id, btn) {
+    await fetch('/watchlist/delete/' + id, { method: 'POST' });
+    const row = btn.closest('tr');
+    row.style.transition = 'opacity 0.3s';
+    row.style.opacity = '0';
+    setTimeout(() => {
+        row.remove();
+        if (document.querySelectorAll('#item-list tr').length === 0) {
+            location.reload();
+        }
+    }, 300);
+}
+</script>
 </body>
 </html>

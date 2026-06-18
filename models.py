@@ -21,7 +21,8 @@ def init_db():
             CREATE TABLE IF NOT EXISTS watchlist (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 ticker TEXT NOT NULL,
-                name TEXT,
+                name TEXT NOT NULL,
+                type TEXT DEFAULT 'stock',
                 market TEXT DEFAULT 'KOSPI',
                 added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
@@ -45,6 +46,10 @@ def init_db():
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
         ''')
+        # 마이그레이션: type 컬럼 없으면 추가
+        cols = [row[1] for row in conn.execute('PRAGMA table_info(watchlist)').fetchall()]
+        if 'type' not in cols:
+            conn.execute('ALTER TABLE watchlist ADD COLUMN type TEXT DEFAULT \'stock\'')
     conn.close()
 
 def get_db():
