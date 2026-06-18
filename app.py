@@ -109,6 +109,13 @@ def calendar():
 def dashboard():
     return render_template('dashboard.html')
 
+@app.route('/api/crawl')
+def api_crawl():
+    """뉴스 크롤링 수동 트리거 (cron용)"""
+    import news_crawler
+    count = news_crawler.crawl()
+    return jsonify({'status': 'ok', 'new_articles': count})
+
 if __name__ == '__main__':
     import os
     port = int(os.environ.get('PORT', 5050))
