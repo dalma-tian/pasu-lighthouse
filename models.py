@@ -69,6 +69,10 @@ def init_db():
                     'INSERT OR IGNORE INTO stocks (ticker, name, market, type) VALUES (?, ?, ?, ?)',
                     reader
                 )
+        # ETF/ETN 구분 마이그레이션 — 이름에 ETN/ETF 포함 시 type=etf
+        conn.execute(
+            "UPDATE stocks SET type='etf' WHERE (name LIKE '%ETN%' OR name LIKE '%ETF%') AND type='stock'"
+        )
     conn.close()
 
 def get_db():
