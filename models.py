@@ -1,7 +1,9 @@
 import sqlite3
 import os
+import csv
 
 DB_PATH = os.path.join(os.path.dirname(__file__), 'data', 'pasu.db')
+STOCKS_CSV = os.path.join(os.path.dirname(__file__), 'data', 'stocks.csv')
 
 def init_db():
     os.makedirs('data', exist_ok=True)
@@ -45,11 +47,28 @@ def init_db():
                 change_pct REAL,
                 updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
+            CREATE TABLE IF NOT EXISTS stocks (
+                ticker TEXT NOT NULL,
+                name TEXT NOT NULL,
+                market TEXT NOT NULL,
+                type TEXT DEFAULT 'stock',
+                PRIMARY KEY (ticker, market)
+            );
         ''')
         # 마이그레이션: type 컬럼 없으면 추가
         cols = [row[1] for row in conn.execute('PRAGMA table_info(watchlist)').fetchall()]
         if 'type' not in cols:
             conn.execute('ALTER TABLE watchlist ADD COLUMN type TEXT DEFAULT \'stock\'')
+        # stocks 시드: 비어있으면 CSV에서 import
+        count = conn.execute('SELECT COUNT(*) FROM stocks').fetchone()[0]
+        if count == 0 and os.path.exists(STOCKS_CSV):
+            with open(STOCKS_CSV, 'r', encoding='utf-8') as f:
+                reader = csv.reader(f)
+                next(reader)  # skip header
+                conn.executemany(
+                    'INSERT OR IGNORE INTO stocks (ticker, name, market, type) VALUES (?, ?, ?, ?)',
+                    reader
+                )
     conn.close()
 
 def get_db():
