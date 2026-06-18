@@ -29,21 +29,22 @@
         <div class="indicator-card">
             <div class="ind-name">{{ ind.name }}</div>
             <div class="ind-value">
-                {% if '금리' in ind.name %}
-                    {{ "%.2f"|format(ind.value) }}%
-                {% elif '환율' in ind.name %}
-                    {{ "%,.0f"|format(ind.value) }}원
-                {% elif 'S&P' in ind.name or 'KOSPI' in ind.name %}
-                    {{ "%,.2f"|format(ind.value) }}
-                {% elif '유가' in ind.name %}
-                    ${{ "%.2f"|format(ind.value) }}
+                {% set v = ind.value|float %}
+                {% if '금리' in ind.name|string %}
+                    {{ "%.2f"|format(v) }}%
+                {% elif '환율' in ind.name|string %}
+                    {{ "%,.0f"|format(v) }}원
+                {% elif 'S&P' in ind.name|string or 'KOSPI' in ind.name|string %}
+                    {{ "%,.2f"|format(v) }}
+                {% elif '유가' in ind.name|string %}
+                    ${{ "%.2f"|format(v) }}
                 {% else %}
-                    {{ ind.value }}
+                    {{ v }}
                 {% endif %}
             </div>
-            {% if ind.change_pct != 0 %}
-            <div class="ind-change {% if ind.change_pct > 0 %}up{% else %}down{% endif %}">
-                {{ "%+.2f"|format(ind.change_pct) }}
+            {% if ind.change_pct|float != 0 %}
+            <div class="ind-change {% if ind.change_pct|float > 0 %}up{% else %}down{% endif %}">
+                {{ "%+.2f"|format(ind.change_pct|float) }}
             </div>
             {% endif %}
         </div>
