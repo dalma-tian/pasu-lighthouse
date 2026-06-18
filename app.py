@@ -108,7 +108,12 @@ def watchlist_delete(item_id):
 
 @app.route('/calendar')
 def calendar():
-    return render_template('calendar.html')
+    db = get_db()
+    events = db.execute(
+        'SELECT * FROM calendar ORDER BY event_date ASC'
+    ).fetchall()
+    db.close()
+    return render_template('calendar.html', events=events)
 
 @app.route('/dashboard')
 def dashboard():

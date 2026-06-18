@@ -33,9 +33,9 @@
                 {% if '금리' in ind.name|string %}
                     {{ "%.2f"|format(v) }}%
                 {% elif '환율' in ind.name|string %}
-                    {{ "%,.0f"|format(v) }}원
+                    {{ "%.0f"|format(v) }}원
                 {% elif 'S&P' in ind.name|string or 'KOSPI' in ind.name|string %}
-                    {{ "%,.2f"|format(v) }}
+                    {{ "%.2f"|format(v) }}
                 {% elif '유가' in ind.name|string %}
                     ${{ "%.2f"|format(v) }}
                 {% else %}

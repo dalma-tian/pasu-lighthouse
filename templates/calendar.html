@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>파수의 등대 — 경제 캘린더</title>
     <link rel="stylesheet" href="/static/style.css">
 </head>
@@ -10,16 +11,51 @@
     <h1>🔭 파수의 등대</h1>
     <div class="tabs">
         <a href="/">📰 뉴스</a>
-        <a href="/watchlist">⭐ 관심</a>
+        <a href="/watchlist">💼 포트폴리오</a>
         <a href="/calendar" class="active">📅 캘린더</a>
         <a href="/dashboard">📊 지표</a>
     </div>
 </nav>
+
 <main class="feed">
-    <div class="empty">
-        <p>📅 경제 캘린더는 현재 개발 중입니다.</p>
-        <p>FOMC, CPI, 금통위 등 대내외 주요 경제 일정이 곧 표시됩니다.</p>
+    <div class="feed-header">
+        <h2 style="margin:0;font-size:18px">📅 2026년 경제 일정</h2>
     </div>
+
+    {% if events %}
+    <div class="calendar-list">
+        {% set ns = namespace(current_month='') %}
+        {% for event in events %}
+        {% set month = event.event_date[:7] %}
+        {% if month != ns.current_month %}
+        {% set ns.current_month = month %}
+        <div class="cal-month-header">{{ month }}</div>
+        {% endif %}
+        <div class="cal-item">
+            <div class="cal-date">
+                {% if event.event_time %}
+                    {{ event.event_date }} ~ {{ event.event_time }}
+                {% else %}
+                    {{ event.event_date }}
+                {% endif %}
+            </div>
+            <div class="cal-content">
+                <span class="cal-flag">{{ '🇺🇸' if event.country == 'US' else '🇰🇷' }}</span>
+                <span class="cal-name">{{ event.event_name }}</span>
+                <span class="cal-cat">{{ event.category }}</span>
+                <span class="cal-importance">
+                    {% for i in range(event.importance) %}★{% endfor %}
+                </span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="empty">
+        <p>📅 아직 등록된 일정이 없습니다.</p>
+        <p>FOMC, 금통위, 주요 경제지표 발표일이 자동으로 채워집니다.</p>
+    </div>
+    {% endif %}
 </main>
 </body>
 </html>
