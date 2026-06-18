@@ -21,16 +21,17 @@
     <!-- 추가 폼 -->
     <form class="add-form" onsubmit="addItem(event)">
         <div class="form-row">
-            <input type="text" id="ticker" placeholder="티커 (예: 005930, 228800)" required>
-            <input type="text" id="name" placeholder="종목명 (예: 삼성전자, TIGER 200)" required>
-            <select id="type">
-                <option value="stock">📈 주식</option>
-                <option value="etf">📊 ETF</option>
-            </select>
-            <select id="market">
+            <div class="autocomplete-wrap">
+                <input type="text" id="name" placeholder="종목명 (예: 삼성전자)" required autocomplete="off">
+                <div class="autocomplete-dropdown" id="suggestions"></div>
+            </div>
+            <input type="text" id="ticker" placeholder="티커 자동입력" readonly class="ticker-readonly">
+            <select id="market" disabled>
                 <option value="KOSPI">KOSPI</option>
                 <option value="KOSDAQ">KOSDAQ</option>
+                <option value="ETF">ETF</option>
             </select>
+            <input type="hidden" id="type" value="stock">
             <button type="submit" class="btn-add">+ 추가</button>
         </div>
     </form>
@@ -63,19 +64,84 @@
         {% else %}
         <div class="empty">
             <p>💼 아직 추가된 종목이 없습니다.</p>
-            <p>위 폼에 티커와 종목명을 입력해 추가해보세요. ETF도 가능합니다.</p>
+            <p>종목명을 입력하면 자동완성됩니다. ETF도 검색 가능합니다.</p>
         </div>
         {% endif %}
     </div>
 </main>
 
 <script>
+let debounceTimer;
+
+document.getElementById('name').addEventListener('input', function() {
+    clearTimeout(debounceTimer);
+    const q = this.value.trim();
+    if (q.length < 1) {
+        document.getElementById('suggestions').classList.remove('show');
+        return;
+    }
+    debounceTimer = setTimeout(() => fetchSuggestions(q), 200);
+});
+
+document.getElementById('name').addEventListener('focus', function() {
+    if (this.value.trim().length >= 1 && document.getElementById('suggestions').children.length > 0) {
+        document.getElementById('suggestions').classList.add('show');
+    }
+});
+
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.autocomplete-wrap')) {
+        document.getElementById('suggestions').classList.remove('show');
+    }
+});
+
+async function fetchSuggestions(q) {
+    const dropdown = document.getElementById('suggestions');
+    try {
+        const resp = await fetch('/api/search?q=' + encodeURIComponent(q));
+        const results = await resp.json();
+        dropdown.innerHTML = '';
+        if (results.length === 0) {
+            dropdown.innerHTML = '<div class="ac-item no-result">검색 결과 없음</div>';
+        } else {
+            results.forEach(r => {
+                const div = document.createElement('div');
+                div.className = 'ac-item';
+                div.innerHTML = `
+                    <span class="ac-name">${r.name}</span>
+                    <span class="ac-meta">
+                        <span class="badge badge-${r.type}">${r.type === 'etf' ? 'ETF' : '주식'}</span>
+                        <span class="ac-ticker">${r.ticker}</span>
+                        <span class="ac-market">${r.market}</span>
+                    </span>
+                `;
+                div.addEventListener('mousedown', function(e) {
+                    e.preventDefault();
+                    selectStock(r);
+                });
+                dropdown.appendChild(div);
+            });
+        }
+        dropdown.classList.add('show');
+    } catch(e) {
+        console.error(e);
+    }
+}
+
+function selectStock(stock) {
+    document.getElementById('name').value = stock.name;
+    document.getElementById('ticker').value = stock.ticker;
+    document.getElementById('market').value = stock.market;
+    document.getElementById('type').value = stock.type;
+    document.getElementById('suggestions').classList.remove('show');
+}
+
 async function addItem(e) {
     e.preventDefault();
-    const ticker = document.getElementById('ticker').value.trim().toUpperCase();
+    const ticker = document.getElementById('ticker').value.trim();
     const name = document.getElementById('name').value.trim();
-    const type = document.getElementById('type').value;
     const market = document.getElementById('market').value;
+    const type = document.getElementById('type').value;
     if (!ticker || !name) return;
 
     const formData = new FormData();

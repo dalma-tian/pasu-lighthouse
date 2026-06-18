@@ -36,8 +36,34 @@ def api_news():
     return jsonify([dict(row) for row in news_list])
 
 def get_name(ticker):
-    names = {'005930': '삼성전자', '000660': 'SK하이닉스', '329180': 'HD현대중공업'}
-    return names.get(ticker, ticker)
+    db = get_db()
+    row = db.execute('SELECT name FROM stocks WHERE ticker = ? LIMIT 1', (ticker,)).fetchone()
+    db.close()
+    return row['name'] if row else ticker
+
+@app.route('/api/search')
+def api_search():
+    q = request.args.get('q', '').strip()
+    if len(q) < 1:
+        return jsonify([])
+    db = get_db()
+    rows = db.execute(
+        'SELECT ticker, name, market, type FROM stocks WHERE name LIKE ? ORDER BY '
+        'CASE WHEN name = ? THEN 0 WHEN name LIKE ? THEN 1 ELSE 2 END, '
+        'name LIMIT 8',
+        (f'%{q}%', q, f'{q}%')
+    ).fetchall()
+    db.close()
+    results = []
+    for r in rows:
+        results.append({
+            'ticker': r['ticker'],
+            'name': r['name'],
+            'market': r['market'],
+            'type': r['type'],
+            'label': f"{r['name']} ({r['ticker']}, {r['market']})"
+        })
+    return jsonify(results)
 
 @app.route('/watchlist', methods=['GET', 'POST'])
 @app.route('/portfolio', methods=['GET', 'POST'])

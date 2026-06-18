@@ -92,3 +92,27 @@ body { font-family: -apple-system, 'Segoe UI', sans-serif; background: #f5f6fa; 
     cursor: pointer; transition: color .2s; padding: 4px 8px;
 }
 .btn-del:hover { color: #e53935; }
+
+/* ── 자동완성 ── */
+.autocomplete-wrap { position: relative; flex: 1; min-width: 160px; }
+.autocomplete-dropdown {
+    display: none; position: absolute; top: 100%; left: 0; right: 0;
+    background: white; border: 1px solid #ddd; border-radius: 8px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.1); z-index: 100; margin-top: 4px;
+    max-height: 320px; overflow-y: auto;
+}
+.autocomplete-dropdown.show { display: block; }
+.ac-item {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 14px; cursor: pointer; font-size: 14px;
+    border-bottom: 1px solid #f5f5f8; transition: background .15s;
+}
+.ac-item:last-child { border-bottom: none; }
+.ac-item:hover, .ac-item:focus { background: #f0f2ff; }
+.ac-item.no-result { color: #999; justify-content: center; cursor: default; }
+.ac-item.no-result:hover { background: white; }
+.ac-name { font-weight: 600; color: #1a1a2e; }
+.ac-meta { display: flex; gap: 6px; align-items: center; }
+.ac-ticker { font-family: 'SF Mono', 'Consolas', monospace; font-size: 12px; color: #888; }
+.ac-market { font-size: 11px; color: #aaa; background: #f5f6fa; padding: 1px 6px; border-radius: 4px; }
+.ticker-readonly { background: #f5f6fa !important; color: #666; }
