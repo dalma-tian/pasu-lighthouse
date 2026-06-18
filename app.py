@@ -19,9 +19,21 @@ def index():
         query += ' AND stars = ?'
         params.append(int(stars))
     if tab == 'domestic':
-        query += " AND source LIKE '네이버%'"
+        query += " AND (link LIKE '%n.news.naver.com%' OR link LIKE '%finance.naver.com%')"
     elif tab == 'global':
-        query += " AND source NOT LIKE '네이버%'"
+        query += " AND (link NOT LIKE '%n.news.naver.com%' AND link NOT LIKE '%finance.naver.com%')"
+    elif tab == 'portfolio':
+        # 관심종목 뉴스: watchlist에 등록된 종목명/티커가 제목에 포함된 기사
+        watchlist_items = db.execute('SELECT name, ticker FROM watchlist').fetchall()
+        if watchlist_items:
+            conditions = []
+            for item in watchlist_items:
+                conditions.append('(title LIKE ? OR title LIKE ?)')
+                params.extend([f'%{item["name"]}%', f'%{item["ticker"]}%'])
+            query += ' AND (' + ' OR '.join(conditions) + ')'
+        else:
+            # 관심종목 없으면 빈 결과
+            query += ' AND 1=0'
     if ticker:
         query += ' AND (title LIKE ? OR title LIKE ?)'
         params.extend([f'%{ticker}%', f'%{get_name(ticker)}%'])

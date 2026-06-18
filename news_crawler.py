@@ -112,8 +112,49 @@ def crawl_google(db):
     return new_count
 
 
+def extract_press(summary_html):
+    """<dd class=articleSummary>에서 언론사명 추출"""
+    # news_list.nhn: <span class="press">언론사</span>
+    m = re.search(r'<span class="press">(.*?)</span>', summary_html)
+    if m:
+        return m.group(1).strip()
+    # mainnews.nhn: 일반 텍스트, '|' 기준으로 언론사명 찾기
+    text = re.sub(r'<[^>]+>', '', summary_html).strip()
+    lines = [l.strip() for l in text.split('\n') if l.strip()]
+    # 패턴: ... 요약문, 언론사, |, 날짜
+    for i in range(len(lines)-1, -1, -1):
+        if re.match(r'\d{4}-\d{2}-\d{2}', lines[i]):
+            if i >= 2 and lines[i-1] == '|':
+                return lines[i-2]
+            elif i >= 1:
+                return lines[i-1]
+    # fallback: <span class="bar">|</span> 패턴
+    m2 = re.search(r'<span class="bar">\|</span>', summary_html)
+    if m2:
+        before_bar = summary_html[:m2.start()]
+        text_before = re.sub(r'<[^>]+>', '', before_bar).strip()
+        parts = [p.strip() for p in text_before.split('\n') if p.strip()]
+        if parts:
+            return parts[-1]
+    return '네이버금융'
+
+
+def convert_link(raw_href):
+    """구형 링크(/news/news_read.naver?...) → n.news.naver.com 신형 링크"""
+    from urllib.parse import urlparse, parse_qs
+    if 'n.news.naver.com' in raw_href:
+        return raw_href
+    if '/news/news_read.' in raw_href:
+        qs = parse_qs(urlparse(raw_href).query)
+        article_id = qs.get('article_id', [None])[0]
+        office_id = qs.get('office_id', [None])[0]
+        if article_id and office_id:
+            return f'https://n.news.naver.com/mnews/article/{office_id}/{article_id}'
+    return 'https://finance.naver.com' + raw_href.replace('&amp;', '&')
+
+
 def crawl_naver(db):
-    """네이버 금융 HTML 파싱 (5개 섹션)"""
+    """네이버 금융 HTML 파싱 — 언론사명 + 신형 링크 (5개 섹션)"""
     new_count = 0
     for source_label, url in NAVER_URLS:
         try:
@@ -121,25 +162,45 @@ def crawl_naver(db):
             with urllib.request.urlopen(req, timeout=15) as resp:
                 html = resp.read().decode('euc-kr', errors='replace')
 
-            items = re.findall(
-                r'<a\s+href="(/news/news_read[^"]+)"[^>]*>(.*?)</a>',
-                html, re.DOTALL
-            )
-            for href, text in items:
-                title = unescape(re.sub(r'<[^>]+>', '', text).strip())
+            # <dl> 블록 단위로 파싱 (articleSubject + articleSummary 짝)
+            dl_blocks = re.findall(r'<dl>(.*?)</dl>', html, re.DOTALL)
+            for dl_html in dl_blocks:
+                subject_match = re.search(
+                    r'<dd class="articleSubject">(.*?)</dd>',
+                    dl_html, re.DOTALL
+                )
+                summary_match = re.search(
+                    r'<dd class="articleSummary">(.*?)</dd>',
+                    dl_html, re.DOTALL
+                )
+                if not subject_match:
+                    continue
+
+                a_match = re.search(
+                    r'<a\s+href="([^"]+)"[^>]*>(.*?)</a>',
+                    subject_match.group(1), re.DOTALL
+                )
+                if not a_match:
+                    continue
+
+                title = unescape(re.sub(r'<[^>]+>', '', a_match.group(2).strip()))
                 if not title or len(title) < 6:
                     continue
-                link = 'https://finance.naver.com' + href.replace('&amp;', '&')
+
+                link = convert_link(a_match.group(1))
+                press = extract_press(summary_match.group(1)) if summary_match else source_label
+
                 exists = db.execute('SELECT id FROM news WHERE link = ?', (link,)).fetchone()
                 if exists:
                     continue
+
                 published_at = datetime.now(timezone.utc).isoformat()
                 from scorer import score, to_stars
-                imp = score(title, source_label, published_at)
+                imp = score(title, press, published_at)
                 stars = to_stars(imp)
                 db.execute(
                     'INSERT INTO news (title, link, source, published_at, importance, stars) VALUES (?,?,?,?,?,?)',
-                    (title, link, source_label, published_at, imp, stars)
+                    (title, link, press, published_at, imp, stars)
                 )
                 new_count += 1
         except Exception as e:
