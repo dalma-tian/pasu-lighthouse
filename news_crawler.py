@@ -89,9 +89,9 @@ def crawl_google(db):
                 if source == '구글뉴스' and source_el is not None and source_el.text:
                     source = source_el.text.strip()
                 title = clean_title(raw)
-                # 영문 → 번역
-                if is_english(title):
-                    title = translate_title(title)
+                # 영문 → 번역 (메모리 문제로 일시 비활성화. OpenAI 크레딧 받은 후 적용 예정)
+                # if is_english(title):
+                #     title = translate_title(title)
                 link = link_el.text.strip() if link_el is not None and link_el.text else ''
                 published_at = parse_pubdate(pubdate_el.text if pubdate_el is not None else None)
                 if not link:
