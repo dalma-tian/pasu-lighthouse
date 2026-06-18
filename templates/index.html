@@ -25,6 +25,10 @@
     </div>
 
     <main class="feed">
+        <div class="feed-header">
+            <span class="feed-count">{% if news_list %}{{ news_list|length }}건{% endif %}</span>
+            <button class="btn-refresh" onclick="refreshNews()">🔄 새로고침</button>
+        </div>
         {% if news_list %}
             {% for news in news_list %}
             <article class="card">
@@ -47,5 +51,21 @@
             </div>
         {% endif %}
     </main>
+<script>
+async function refreshNews() {
+    const btn = document.querySelector('.btn-refresh');
+    btn.textContent = '⏳ 수집 중...';
+    btn.disabled = true;
+    try {
+        const resp = await fetch('/api/crawl');
+        const data = await resp.json();
+        btn.textContent = '✅ ' + data.new_articles + '건 추가';
+        setTimeout(() => location.reload(), 800);
+    } catch(e) {
+        btn.textContent = '❌ 실패';
+        btn.disabled = false;
+    }
+}
+</script>
 </body>
 </html>

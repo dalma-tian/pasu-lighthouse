@@ -44,6 +44,16 @@ body { font-family: -apple-system, 'Segoe UI', sans-serif; background: #f5f6fa; 
 .empty { text-align: center; padding: 80px 20px; color: #999; }
 .empty p { margin-bottom: 8px; }
 
+/* ── 새로고침 버튼 ── */
+.feed-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.feed-count { font-size: 13px; color: #999; }
+.btn-refresh {
+    background: #1a1a2e; color: white; border: none; border-radius: 8px;
+    padding: 6px 14px; font-size: 13px; cursor: pointer; transition: background .2s;
+}
+.btn-refresh:hover { background: #3a6ff5; }
+.btn-refresh:disabled { opacity: 0.6; cursor: wait; }
+
 /* ── 포트폴리오 추가 폼 ── */
 .add-form {
     background: white; border-radius: 12px; padding: 16px 20px;

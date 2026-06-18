@@ -16,7 +16,11 @@ RSS_FEEDS = [
 ]
 
 NAVER_URLS = [
-    "https://finance.naver.com/news/mainnews.nhn",
+    ("네이버금융", "https://finance.naver.com/news/mainnews.nhn"),
+    ("네이버시황", "https://finance.naver.com/news/news_list.nhn?mode=LSS2D&section_id=101&section_id2=258"),
+    ("네이버종목", "https://finance.naver.com/news/news_list.nhn?mode=LSS3D&section_id=101&section_id2=258&section_id3=300"),
+    ("네이버국제", "https://finance.naver.com/news/news_list.nhn?mode=LSS2D&section_id=101&section_id2=259"),
+    ("네이버증권", "https://finance.naver.com/news/news_list.nhn?mode=LSS3D&section_id=101&section_id2=258&section_id3=301"),
 ]
 
 
@@ -42,8 +46,28 @@ def clean_title(raw):
     return unescape(title)
 
 
+def is_english(text):
+    """텍스트가 영문인지 감지 (한글 없고 ASCII 위주)"""
+    has_korean = bool(re.search(r'[가-힣]', text))
+    ascii_ratio = sum(1 for c in text if ord(c) < 128) / max(len(text), 1)
+    return not has_korean and ascii_ratio > 0.7
+
+
+def translate_title(english_title):
+    """영문 제목 → 한글 번역 (원문)"""
+    try:
+        from deep_translator import GoogleTranslator
+        t = GoogleTranslator(source='en', target='ko')
+        ko = t.translate(english_title)
+        if ko and ko != english_title:
+            return f"{ko} ({english_title})"
+    except Exception:
+        pass
+    return english_title
+
+
 def crawl_google(db):
-    """구글 뉴스 RSS"""
+    """구글 뉴스 RSS → 실제 출처 + 한글 번역"""
     new_count = 0
     for feed_url in RSS_FEEDS:
         try:
@@ -55,11 +79,19 @@ def crawl_google(db):
                 title_el = item.find('title')
                 link_el = item.find('link')
                 pubdate_el = item.find('pubDate')
+                source_el = item.find('source')
                 if title_el is None or not title_el.text:
                     continue
                 raw = title_el.text.strip()
-                title = clean_title(raw)
+                # 실제 출처 추출
                 source = extract_source(raw)
+                # 구글뉴스 폴백: <source> 태그 사용
+                if source == '구글뉴스' and source_el is not None and source_el.text:
+                    source = source_el.text.strip()
+                title = clean_title(raw)
+                # 영문 → 번역
+                if is_english(title):
+                    title = translate_title(title)
                 link = link_el.text.strip() if link_el is not None and link_el.text else ''
                 published_at = parse_pubdate(pubdate_el.text if pubdate_el is not None else None)
                 if not link:
@@ -81,9 +113,9 @@ def crawl_google(db):
 
 
 def crawl_naver(db):
-    """네이버 금융 주요뉴스 HTML 파싱"""
+    """네이버 금융 HTML 파싱 (5개 섹션)"""
     new_count = 0
-    for url in NAVER_URLS:
+    for source_label, url in NAVER_URLS:
         try:
             req = urllib.request.Request(url, headers=HEADERS)
             with urllib.request.urlopen(req, timeout=15) as resp:
@@ -102,17 +134,16 @@ def crawl_naver(db):
                 if exists:
                     continue
                 published_at = datetime.now(timezone.utc).isoformat()
-                source = '네이버금융'
                 from scorer import score, to_stars
-                imp = score(title, source, published_at)
+                imp = score(title, source_label, published_at)
                 stars = to_stars(imp)
                 db.execute(
                     'INSERT INTO news (title, link, source, published_at, importance, stars) VALUES (?,?,?,?,?,?)',
-                    (title, link, source, published_at, imp, stars)
+                    (title, link, source_label, published_at, imp, stars)
                 )
                 new_count += 1
         except Exception as e:
-            print(f"[ERR] Naver: {e}")
+            print(f"[ERR] Naver {source_label}: {e}")
     return new_count
 
 
