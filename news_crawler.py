@@ -11,7 +11,7 @@ DB_PATH = os.path.join(os.path.dirname(__file__), 'data', 'pasu.db')
 HEADERS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
 
 RSS_FEEDS = [
-    "https://news.google.com/rss/search?q=경제+금융+증시&hl=ko&gl=KR&ceid=KR:ko",
+    "https://news.google.com/rss/search?q=%EA%B2%BD%EC%A0%9C+%EA%B8%88%EC%9C%B5+%EC%A6%9D%EC%8B%9C&hl=ko&gl=KR&ceid=KR:ko",
     "https://news.google.com/rss/search?q=economy+finance+stock+market&hl=en&gl=US&ceid=US:en",
 ]
 
