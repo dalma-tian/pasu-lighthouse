@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>파수 — 경제 뉴스</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <nav class="topbar">
+        <h1>🔭 파수의 등대</h1>
+        <div class="tabs">
+            <a href="/" class="active">📰 뉴스</a>
+            <a href="/watchlist">⭐ 관심</a>
+            <a href="/calendar">📅 캘린더</a>
+            <a href="/dashboard">📊 지표</a>
+        </div>
+    </nav>
+
+    <div class="filter-bar">
+        <a href="/" class="{% if current_stars == 'all' %}active{% endif %}">전체</a>
+        <a href="/?stars=3">★★★ 필수</a>
+        <a href="/?stars=2">★★ 주요</a>
+        <a href="/?stars=1">★ 참고</a>
+    </div>
+
+    <main class="feed">
+        {% if news_list %}
+            {% for news in news_list %}
+            <article class="card">
+                <div class="card-stars">
+                    {% for i in range(news.stars) %}★{% endfor %}
+                    {% for i in range(3 - news.stars) %}☆{% endfor %}
+                </div>
+                <a href="{{ news.link }}" target="_blank" class="card-title">{{ news.title }}</a>
+                <div class="card-meta">
+                    <span class="source">{{ news.source or '미상' }}</span>
+                    <span>·</span>
+                    <span class="time">{{ news.published_at or '' }}</span>
+                </div>
+            </article>
+            {% endfor %}
+        {% else %}
+            <div class="empty">
+                <p>📭 아직 수집된 뉴스가 없습니다.</p>
+                <p>뉴스 수집기가 곧 첫 데이터를 가져올 예정입니다.</p>
+            </div>
+        {% endif %}
+    </main>
+</body>
+</html>

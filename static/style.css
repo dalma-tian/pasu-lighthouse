@@ -1,0 +1,45 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, 'Segoe UI', sans-serif; background: #f5f6fa; color: #1a1a2e; }
+
+.topbar {
+    background: #1a1a2e; color: white; padding: 16px 24px;
+    display: flex; align-items: center; gap: 32px;
+}
+.topbar h1 { font-size: 20px; }
+.tabs { display: flex; gap: 8px; }
+.tabs a {
+    color: #a0a0b8; text-decoration: none; padding: 6px 14px;
+    border-radius: 8px; font-size: 14px; transition: .2s;
+}
+.tabs a.active, .tabs a:hover { background: #2d2d4a; color: white; }
+
+.filter-bar {
+    display: flex; gap: 8px; padding: 12px 24px;
+    background: white; border-bottom: 1px solid #e0e0e8;
+}
+.filter-bar a {
+    text-decoration: none; padding: 6px 16px; border-radius: 20px;
+    font-size: 13px; color: #666; border: 1px solid #ddd; transition: .2s;
+}
+.filter-bar a.active, .filter-bar a:hover {
+    background: #1a1a2e; color: white; border-color: #1a1a2e;
+}
+
+.feed { max-width: 720px; margin: 24px auto; padding: 0 16px; }
+
+.card {
+    background: white; border-radius: 12px; padding: 16px 20px;
+    margin-bottom: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+    transition: box-shadow .2s;
+}
+.card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.08); }
+.card-stars { font-size: 12px; color: #f0a500; margin-bottom: 4px; }
+.card-title {
+    font-size: 16px; font-weight: 600; color: #1a1a2e;
+    text-decoration: none; line-height: 1.4;
+}
+.card-title:hover { color: #3a6ff5; }
+.card-meta { margin-top: 8px; font-size: 12px; color: #999; display: flex; gap: 6px; }
+
+.empty { text-align: center; padding: 80px 20px; color: #999; }
+.empty p { margin-bottom: 8px; }
