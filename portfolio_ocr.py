@@ -1,267 +1,229 @@
 """
 포트폴리오 스크린샷 OCR → 종목명 추출 + stocks.csv 매칭
-EasyOCR으로 한글 인식 후, 3,004종목 DB와 퍼지 매칭
+EasyOCR + 3,004종목 DB 퍼지매칭. KRX 모바일 + HTS 모두 지원.
+
+전략: 2-pass 추출 (tight threshold + loose threshold) → 결과 병합.
 """
-import csv
-import re
-import os
+import csv, re, os
 from difflib import SequenceMatcher
 
-# stocks.csv 경로 (Flask 기준)
 STOCKS_CSV = os.path.join(os.path.dirname(__file__), 'data', 'stocks.csv')
 
-# 종목명 정규식: ETF/종목 패턴들
-STOCK_NAME_PATTERNS = [
-    # 일반적인 한글+영문 ETF 종목명 (예: ACE 글로벌반도체TOP4)
-    r'[A-Za-z]+\s*[가-힣A-Za-z0-9]+(?:TOP\d*|액티브|플러스|\+)?',
-    r'[가-힣]+\s*[A-Za-z0-9]+',
-]
+IGNORE_TEXTS = {
+    '주식실시간잔고', '실시간계좌관리', 'KRX', '모의',
+    '총 평가손익', '총매입금액', '총평가금액', '추정자산', '총매입', '총손익', '총평가',
+    '실현손익', '예수금', '매매단가', '평가손익', '수익률', '매입가', '매 입 가',
+    '종목명', '잔고', '구분', '가능', '보유수량', '가능수량', '현재가',
+    '거래내역', '관심 종목', '주식 현재가', '주식 주문', '주식 잔고',
+    '계좌번호', '원장미체결', '주문가능', '잔고확인', '잔고확민',
+    '유의사항', '조회', '일괄매도', '닫기', '개별', '전체', '제비용', '합',
+    '선택한 종목 추가', '인식된 종목', 'OCR 기능', 'Render', '사진 추가', '종목 추가',
+    'KOSPI', 'KOSDAQ', '현금', '자동입력',
+}
 
-# 수량 패턴 (잔고란에 나오는 정수)
-QTY_PATTERN = re.compile(r'\b(\d{1,3}(?:,\d{3})*)\b')
-
-# 무시할 행 (헤더/메타데이터)
-IGNORE_KEYWORDS = [
-    '주식실시간잔고', '총 평가손익', '총매입금액', '총평가금액', '추정자산',
-    '실현손익', '예수금', '매매단가', '평가손익', '수익률', '현재가',
-    '종목명', '잔고', '구분', '가능', '거래내역', '관심 종목',
-    '주식 현재가', '주식 주문', '주식 잔고', '모의', 'KRX',
-]
 
 def load_stock_db(csv_path=None):
-    """stocks.csv → [(ticker, name, market), ...] 로드"""
-    if csv_path is None:
-        csv_path = STOCKS_CSV
+    if csv_path is None: csv_path = STOCKS_CSV
     stocks = []
     with open(csv_path, 'r', encoding='utf-8') as f:
-        reader = csv.DictReader(f)
-        for row in reader:
+        for row in csv.DictReader(f):
             stocks.append((row['ticker'], row['name'], row.get('market', '')))
     return stocks
 
 
 def fuzzy_search(name, stock_db, threshold=0.5):
-    """OCR로 추출된 종목명과 stocks.csv를 퍼지 매칭 + substring 보너스"""
-    best_score = 0
-    best_match = None
-    name_clean = name.strip().upper()
-    name_short = re.sub(r'\s+', '', name_clean)
-    
-    for ticker, stock_name, market in stock_db:
-        stock_clean = stock_name.strip().upper()
-        stock_short = re.sub(r'\s+', '', stock_clean)
-        
-        # SequenceMatcher 점수
-        seq_score = SequenceMatcher(None, name_clean, stock_clean).ratio()
-        
-        # Substring 보너스: OCR 텍스트가 종목명에 포함되거나 그 반대
-        sub_bonus = 0
-        if len(name_short) >= 3 and name_short in stock_short:
-            sub_bonus = 0.2
-        elif len(stock_short) >= 3 and stock_short in name_short:
-            sub_bonus = 0.15
-        
-        # 짧은 단어 매칭 보너스 (예: "CD금리액티브" → "CD금리액티브(합성)")
-        if len(name_short) >= 5:
-            # 종목명에서 괄호/접미사 떼고 비교
-            stock_base = re.sub(r'\([^)]*\)|Plus$|액티브$', '', stock_short)
-            name_base = re.sub(r'\([^)]*\)|Plus$|액티브$', '', name_short)
-            if name_base and stock_base:
-                base_score = SequenceMatcher(None, name_base, stock_base).ratio()
-                seq_score = max(seq_score, base_score)
-        
-        total_score = seq_score + sub_bonus
-        if total_score > best_score:
-            best_score = total_score
-            best_match = (ticker, stock_name, market, total_score)
-    
-    if best_score >= threshold:
-        return best_match
-    return None
+    best_score, best_match = 0, None
+    nc = name.strip().upper()
+    ns = re.sub(r'\s+', '', nc)
+    for ticker, sn, market in stock_db:
+        sc = sn.strip().upper()
+        ss = re.sub(r'\s+', '', sc)
+        score = SequenceMatcher(None, nc, sc).ratio()
+        bonus = 0
+        if len(ns) >= 3 and ns in ss: bonus = 0.25
+        elif len(ss) >= 3 and ss in ns: bonus = 0.2
+        if len(ns) >= 4:
+            sb = re.sub(r'\([^)]*\)|Plus$|액티브$|합성$', '', ss)
+            nb = re.sub(r'\([^)]*\)|Plus$|액티브$|합성$', '', ns)
+            if nb and sb and len(nb) >= 3:
+                score = max(score, SequenceMatcher(None, nb, sb).ratio())
+        # Prefer longer names (avoid matching "1Q" prefix when "KODEX" exists)
+        total = score + bonus
+        # Tie-break: prefer well-known ETF brands over minor ones
+        if total > best_score or (best_match is not None and abs(total - best_score) < 0.10):
+            # Prefer KODEX/TIGER/ACE/TIME over 1Q/KIWOOM etc
+            preferred = ['KODEX ', 'TIGER ', 'ACE ', 'TIME ', 'HANARO ', 'RISE ', 'SOL ']
+            if best_match is not None and abs(total - best_score) < 0.10:
+                old_pref = any(best_match[1].upper().startswith(p) for p in preferred)
+                new_pref = any(sn.upper().startswith(p) for p in preferred)
+                if old_pref and not new_pref:
+                    continue  # keep old match
+            best_score = total
+            best_match = (ticker, sn, market, total)
+    return best_match if best_score >= threshold else None
 
 
-# ETF 접두사 브랜드 (이름이 분리될 경우 병합)
-ETF_PREFIXES = ['KODEX', 'TIGER', 'ACE', 'TIME', 'HANARO', 'RISE', 'SOL', 'KoAct',
-                'KB', 'KIWOOM', '1Q', 'PLUS', 'ARIRANG', 'KBSTAR', 'KINDEX',
-                'MASTER', 'NH-Amundi', 'TREX', 'WOORI', 'FOCUS', 'TIMEFOLIO',
-                'BNK', 'DB', 'HANA', 'IBK', 'KCGI', 'KTB', 'MERITZ', 'MIREA',
-                'NAVER', 'Samsung', 'Shinhan', 'SMART', 'TIGER ETF']
+def _is_num(t):
+    return bool(re.match(r'^-?[\d,]+$', t))
 
-STOCK_NAME_CHARS = re.compile(r'[A-Za-z0-9가-힣&()+.,%\-\s]+')
 
-def _is_stock_name(text):
-    """주식 종목명으로 보이는지 확인 (요약/헤더 제외)"""
+def _looks_like_stock(text):
     t = text.strip()
-    if len(t) < 3:
-        return False
-    if any(kw in t for kw in IGNORE_KEYWORDS):
-        return False
-    # 순수 숫자만 있는 건 제외
-    if re.match(r'^[\d,.\-+%]+$', t):
-        return False
-    # 종목명에 포함될 법한 문자 구성인지
-    return bool(STOCK_NAME_CHARS.fullmatch(t))
+    if len(t) < 2: return False
+    if t in IGNORE_TEXTS: return False
+    if _is_num(t): return False
+    # 1글자 한글은 무시 (예: "관", "심")
+    if re.match(r'^[가-힣]$', t): return False
+    return bool(re.search(r'[가-힣]|[A-Za-z]{2,}', t))
 
 
-def extract_stocks_from_ocr_results(ocr_results):
-    """
-    EasyOCR 결과 → 종목명+수량 추출.
-    반환: [(종목명_raw, 수량), ...]
-    """
-    # y좌표 기준 정렬
-    sorted_results = sorted(ocr_results, key=lambda r: (r[0][0][1], r[0][0][0]))
-    
-    # 유효한 텍스트만 (위치 정보 포함)
+def _make_items(ocr_results):
+    """OCR 결과 → 정제된 아이템 리스트 (x, y, text)"""
     items = []
-    for bbox, text, conf in sorted_results:
-        if conf < 0.2:
-            continue
+    for bbox, text, conf in sorted(ocr_results, key=lambda r: (r[0][0][1], r[0][0][0])):
+        if conf < 0.15: continue
         clean = text.strip()
-        if len(clean) <= 1:
-            continue
-        if any(kw in clean for kw in IGNORE_KEYWORDS):
-            continue
-        # 순수 숫자/기호만 있는 것도 제외하지 않음 (수량/가격 데이터로 필요)
-        x_center = (bbox[0][0] + bbox[2][0]) / 2
-        y_center = (bbox[0][1] + bbox[2][1]) / 2
+        if len(clean) <= 1 and not clean.isdigit(): continue
+        if clean in IGNORE_TEXTS: continue
+        # "X 아이콘" 같이 의미없는 단일 영문자
+        if len(clean) == 1 and clean.isalpha() and clean not in 'AI': continue
         items.append({
             'text': clean,
-            'x': x_center,
-            'y': y_center,
-            'w': bbox[2][0] - bbox[0][0],
-            'h': bbox[2][1] - bbox[0][1],
+            'x': (bbox[0][0] + bbox[2][0]) / 2,
+            'y': (bbox[0][1] + bbox[2][1]) / 2,
             'conf': conf
         })
-    
-    # 행(row) 그룹핑: y좌표 차이가 폰트 크기의 1.5배 이내면 같은 행
-    if not items:
-        return []
-    
-    avg_h = sum(it['h'] for it in items) / len(items)
-    row_threshold = max(avg_h * 1.5, 20)
-    
-    rows = []
-    current_row = [items[0]]
-    
-    for item in items[1:]:
-        if abs(item['y'] - current_row[-1]['y']) <= row_threshold:
-            current_row.append(item)
+    return items
+
+
+def _group_rows(items, threshold):
+    """y좌표 기준 행 그룹핑"""
+    if not items: return []
+    rows, cur = [], [items[0]]
+    for it in items[1:]:
+        if abs(it['y'] - cur[-1]['y']) <= threshold:
+            cur.append(it)
         else:
-            rows.append(current_row)
-            current_row = [item]
-    rows.append(current_row)
+            rows.append(cur)
+            cur = [it]
+    rows.append(cur)
+    return rows
+
+
+def _extract_pass(items, row_threshold, qty_min=1):
+    """한 번의 패스로 종목 추출. (종목명_왼쪽, 수량_오른쪽)"""
+    rows = _group_rows(items, row_threshold)
+    stocks = []
     
-    # 각 행 내에서 x좌표 순으로 정렬
     for row in rows:
         row.sort(key=lambda it: it['x'])
-    
-    # 행들을 순회하며 종목명+수량 쌍 찾기
-    # 패턴: [종목명 파트들...] [수량(50-9999)] [매입단가] [평가손익] ...
-    stocks = []
-    i = 0
-    while i < len(rows):
-        row = rows[i]
-        row_texts = [it['text'] for it in row]
         
-        # 수량 찾기 (첫 번째 50-9999 범위의 정수)
-        qty = None
-        qty_pos = None
-        for pos, item in enumerate(row):
-            t = item['text'].replace(',', '')
-            if re.match(r'^\d{2,4}$', t):
+        # 수량 찾기 (qty_min ~ 99999)
+        qty, qty_pos = None, None
+        for pos, it in enumerate(row):
+            t = it['text'].replace(',', '')
+            if re.match(r'^\d{1,5}$', t):
                 val = int(t)
-                if 50 <= val <= 9999:
+                if qty_min <= val <= 99999:
                     qty = val
                     qty_pos = pos
                     break
         
         if qty is None:
-            i += 1
             continue
         
-        # 종목명: 현재 행에서 수량보다 왼쪽(x좌표)에 있는 텍스트들만 수집
-        name_parts = []
-        for item in row[:qty_pos]:
-            t = item['text']
-            # 한글/영문이 하나라도 포함된 텍스트만 종목명 후보
-            if re.search(r'[가-힣A-Za-z]', t):
-                name_parts.append(t)
-        
-        if not name_parts:
-            # 수량 왼쪽에 종목명이 없으면, 같은 행에서 수량 왼쪽 + 이전 행 전체에서 검색
-            for item in row[:qty_pos]:
-                if re.search(r'[가-힣A-Za-z]', item['text']):
-                    name_parts.append(item['text'])
-            if not name_parts and i > 0:
-                prev_row = rows[i-1]
-                for item in prev_row:
-                    if re.search(r'[가-힣A-Za-z]', item['text']):
-                        name_parts.append(item['text'])
-        
-        if not name_parts:
-            i += 1
+        # 종목명: 수량 왼쪽
+        parts = [it['text'] for it in row[:qty_pos] if _looks_like_stock(it['text'])]
+        if not parts:
             continue
         
-        raw_name = ' '.join(name_parts)
-        
-        # ETF 접두사 병합
-        if len(name_parts) >= 2:
-            last_prefix = None
-            merged = []
-            for part in name_parts:
-                part_upper = part.upper().strip()
-                is_prefix = any(part_upper == p.upper() for p in ETF_PREFIXES)
-                if is_prefix:
-                    last_prefix = part
-                else:
-                    if last_prefix and not part_upper.startswith(last_prefix.upper()):
-                        merged.append(f"{last_prefix} {part}")
-                        last_prefix = None
-                    else:
-                        if last_prefix:
-                            merged.append(last_prefix)
-                            last_prefix = None
-                        merged.append(part)
-            if last_prefix:
-                merged.append(last_prefix)
-            raw_name = ' '.join(merged)
-        
-        stocks.append((raw_name, qty))
-        i += 1
+        name = ' '.join(parts)
+        stocks.append((name, qty))
     
     return stocks
 
 
+def extract_stocks_from_ocr_results(ocr_results):
+    """
+    2-pass 추출:
+    Pass 1: tight threshold (14px) → 작은 수량도 허용
+    Pass 2: loose threshold (22px) → 50+ 수량
+    
+    + 수량 없는 종목도 이름만 추출하는 fallback
+    결과 병합 (중복 제거)
+    """
+    items = _make_items(ocr_results)
+    if not items:
+        return []
+    
+    all_stocks = []
+    
+    # Pass 1: tight (HTS)
+    s1 = _extract_pass(items, row_threshold=14, qty_min=1)
+    all_stocks.extend(s1)
+    
+    # Pass 2: loose (KRX mobile)
+    s2 = _extract_pass(items, row_threshold=22, qty_min=50)
+    all_stocks.extend(s2)
+    
+    # Fallback: 수량 없는 종목명도 추출 (HTS에서 보유수량 인식 실패 대비)
+    # 가장 왼쪽 영역(x < 전체 너비의 30%)에서 종목명 추출
+    max_x = max(it['x'] for it in items) if items else 500
+    left_items = sorted(
+        [it for it in items if it['x'] < max_x * 0.3 and _looks_like_stock(it['text'])],
+        key=lambda it: it['y']
+    )
+    # y좌표로 그룹핑하여 연속된 텍스트 병합
+    if left_items:
+        groups, cur = [], [left_items[0]]
+        for it in left_items[1:]:
+            if it['y'] - cur[-1]['y'] <= 20:
+                cur.append(it)
+            else:
+                groups.append(cur); cur = [it]
+        groups.append(cur)
+    
+    # ETF 단독 접두사 (종목명의 일부로만 의미있음)
+    SOLO_PREFIXES = {'ACE', 'TIGER', 'KODEX', 'TIME', 'TIIME', 'HANARO', 'RISE', 'SOL', 
+                     'KoAct', 'KIWOOM', '1Q', 'PLUS', 'KB', 'TIGER ETF'}
+    
+    for grp in groups:
+            grp.sort(key=lambda it: it['x'])
+            name = ' '.join(it['text'] for it in grp)
+            # 단독 ETF 접두사만 있는 경우 스킵
+            if name.strip().upper() in SOLO_PREFIXES:
+                continue
+            all_stocks.append((name, 0))
+    
+    # 중복 제거
+    seen, result = set(), []
+    for name, qty in all_stocks:
+        key = name.strip().upper()
+        if key not in seen:
+            seen.add(key)
+            result.append((name, qty))
+    
+    return result
+
+
 def process_portfolio_image(image_path, stock_db=None):
-    """
-    포트폴리오 이미지 → 매칭된 종목 리스트
-    반환: [(ticker, name, qty, confidence), ...]
-    """
     import easyocr
+    if stock_db is None: stock_db = load_stock_db()
     
-    if stock_db is None:
-        stock_db = load_stock_db()
-    
-    # EasyOCR 실행 (한국어+영어)
     reader = easyocr.Reader(['ko', 'en'], gpu=False)
     results = reader.readtext(image_path)
+    raw = extract_stocks_from_ocr_results(results)
     
-    # 종목 추출
-    raw_stocks = extract_stocks_from_ocr_results(results)
-    
-    # stocks.csv와 매칭
-    matched = []
-    for raw_name, qty in raw_stocks:
-        match = fuzzy_search(raw_name, stock_db)
-        if match:
-            ticker, name, market, score = match
+    matched, seen_tickers = [], set()
+    for name, qty in raw:
+        m = fuzzy_search(name, stock_db)
+        if m:
+            ticker, sname, market, score = m
+            if ticker in seen_tickers: continue
+            seen_tickers.add(ticker)
             matched.append({
-                'ticker': ticker,
-                'name': name,
-                'market': market,
-                'quantity': qty,
-                'confidence': round(score, 2),
-                'raw_ocr': raw_name
+                'ticker': ticker, 'name': sname, 'market': market,
+                'quantity': qty, 'confidence': round(min(score, 1.0), 2),
+                'raw_ocr': name
             })
-    
     return matched
