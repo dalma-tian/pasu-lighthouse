@@ -162,6 +162,70 @@ def api_crawl():
     count = news_crawler.crawl()
     return jsonify({'status': 'ok', 'new_articles': count})
 
+
+@app.route('/api/portfolio/ocr', methods=['POST'])
+def api_portfolio_ocr():
+    """포트폴리오 스크린샷 업로드 → OCR → 종목 매칭"""
+    import os
+    import tempfile
+    
+    if 'image' not in request.files:
+        return jsonify({'status': 'error', 'message': '이미지 파일이 필요합니다'}), 400
+    
+    file = request.files['image']
+    if file.filename == '':
+        return jsonify({'status': 'error', 'message': '파일이 선택되지 않았습니다'}), 400
+    
+    # 임시 파일로 저장
+    suffix = os.path.splitext(file.filename)[1] or '.png'
+    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+        file.save(tmp.name)
+        tmp_path = tmp.name
+    
+    try:
+        from portfolio_ocr import process_portfolio_image
+        results = process_portfolio_image(tmp_path)
+        return jsonify({'status': 'ok', 'stocks': results})
+    except ImportError:
+        return jsonify({'status': 'error', 'message': 'OCR 기능은 로컬 환경에서만 사용 가능합니다 (Render 미지원). 로컬에서 실행해주세요.'}), 503
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}), 500
+    finally:
+        try:
+            os.unlink(tmp_path)
+        except OSError:
+            pass
+
+
+@app.route('/api/portfolio/batch-add', methods=['POST'])
+def api_portfolio_batch_add():
+    """OCR 매칭 결과 여러 종목을 한번에 워치리스트에 추가"""
+    import json
+    data = request.get_json()
+    if not data or 'stocks' not in data:
+        return jsonify({'status': 'error', 'message': '종목 목록이 필요합니다'}), 400
+    
+    db = get_db()
+    added = 0
+    for stock in data['stocks']:
+        ticker = stock.get('ticker', '').strip()
+        name = stock.get('name', '').strip()
+        market = stock.get('market', 'KOSPI')
+        item_type = 'etf' if 'ETF' in name.upper() or market == 'ETF' else 'stock'
+        if ticker and name:
+            try:
+                db.execute(
+                    'INSERT INTO watchlist (ticker, name, type, market) VALUES (?, ?, ?, ?)',
+                    (ticker, name, item_type, market)
+                )
+                added += 1
+            except sqlite3.IntegrityError:
+                pass  # 중복 무시
+    db.commit()
+    backup_watchlist()
+    db.close()
+    return jsonify({'status': 'ok', 'added': added})
+
 @app.route('/api/indicators')
 def api_indicators():
     """지표 수동 갱신 트리거"""

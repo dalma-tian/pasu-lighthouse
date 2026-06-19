@@ -40,8 +40,42 @@
             </select>
             <input type="hidden" id="type" value="stock">
             <button type="submit" class="btn-add">종목 추가</button>
+            <button type="button" class="btn-ocr" onclick="document.getElementById('ocr-file').click()" title="포트폴리오 사진으로 종목 추가">
+                <i data-lucide="camera" class="icon-sm"></i> 사진 추가
+            </button>
+            <input type="file" id="ocr-file" accept="image/*" style="display:none" onchange="uploadPortfolioImage(this)">
         </div>
     </form>
+
+    <!-- OCR 결과 영역 -->
+    <div class="ocr-results" id="ocr-results" style="display:none">
+        <div class="ocr-header">
+            <span class="ocr-title"><i data-lucide="sparkles" class="icon-sm icon-accent"></i> 인식된 종목</span>
+            <span class="ocr-status" id="ocr-status"></span>
+            <button class="ocr-close" onclick="closeOcrResults()"><i data-lucide="x" class="icon-sm"></i></button>
+        </div>
+        <div class="ocr-table-wrap">
+            <table class="ocr-table">
+                <thead>
+                    <tr>
+                        <th><input type="checkbox" id="ocr-select-all" onchange="toggleAllOcr(this)" checked></th>
+                        <th>종목명</th>
+                        <th>티커</th>
+                        <th>수량</th>
+                        <th>매칭률</th>
+                    </tr>
+                </thead>
+                <tbody id="ocr-tbody"></tbody>
+            </table>
+        </div>
+        <div class="ocr-actions">
+            <button class="btn-add" onclick="batchAddOcr()"><i data-lucide="plus" class="icon-xs"></i> 선택한 종목 추가</button>
+            <span class="ocr-hint" id="ocr-hint"></span>
+        </div>
+        <div class="ocr-loading" id="ocr-loading" style="display:none">
+            <i data-lucide="loader-circle" class="icon-sm spin"></i> 이미지 분석 중...
+        </div>
+    </div>
 
     <div class="portfolio-table-wrap">
         {% if items %}
@@ -173,6 +207,102 @@ async function deleteItem(id, btn) {
             location.reload();
         }
     }, 300);
+}
+
+// OCR 포트폴리오 업로드
+let ocrResults = [];
+
+async function uploadPortfolioImage(input) {
+    const file = input.files[0];
+    if (!file) return;
+    
+    const panel = document.getElementById('ocr-results');
+    const loading = document.getElementById('ocr-loading');
+    const tbody = document.getElementById('ocr-tbody');
+    const status = document.getElementById('ocr-status');
+    
+    panel.style.display = 'block';
+    loading.style.display = 'flex';
+    tbody.innerHTML = '';
+    status.textContent = '분석 중...';
+    
+    const formData = new FormData();
+    formData.append('image', file);
+    
+    try {
+        const resp = await fetch('/api/portfolio/ocr', { method: 'POST', body: formData });
+        const data = await resp.json();
+        loading.style.display = 'none';
+        
+        if (data.status === 'ok') {
+            ocrResults = data.stocks;
+            status.textContent = `${ocrResults.length}종목 인식됨`;
+            renderOcrResults();
+        } else {
+            status.textContent = '❌ ' + (data.message || '인식 실패');
+        }
+    } catch(e) {
+        loading.style.display = 'none';
+        status.textContent = '❌ 서버 오류';
+        console.error(e);
+    }
+    
+    if (window.lucide) lucide.createIcons();
+}
+
+function renderOcrResults() {
+    const tbody = document.getElementById('ocr-tbody');
+    tbody.innerHTML = ocrResults.map((s, i) => `
+        <tr class="${s.confidence < 0.6 ? 'ocr-low-conf' : ''}">
+            <td><input type="checkbox" class="ocr-cb" data-idx="${i}" checked></td>
+            <td>
+                <span class="ocr-name">${s.name}</span>
+                ${s.raw_ocr !== s.name ? `<span class="ocr-raw">OCR: ${s.raw_ocr}</span>` : ''}
+            </td>
+            <td class="mono">${s.ticker}</td>
+            <td>${s.quantity}주</td>
+            <td><span class="ocr-conf ${s.confidence >= 0.8 ? 'ocr-conf-high' : s.confidence >= 0.6 ? 'ocr-conf-mid' : 'ocr-conf-low'}">${Math.round(s.confidence * 100)}%</span></td>
+        </tr>
+    `).join('');
+    document.getElementById('ocr-select-all').checked = true;
+    if (window.lucide) lucide.createIcons();
+}
+
+function toggleAllOcr(cb) {
+    document.querySelectorAll('.ocr-cb').forEach(c => c.checked = cb.checked);
+}
+
+function closeOcrResults() {
+    document.getElementById('ocr-results').style.display = 'none';
+    ocrResults = [];
+    document.getElementById('ocr-file').value = '';
+}
+
+async function batchAddOcr() {
+    const selected = [];
+    document.querySelectorAll('.ocr-cb:checked').forEach(cb => {
+        const idx = parseInt(cb.dataset.idx);
+        selected.push(ocrResults[idx]);
+    });
+    
+    if (selected.length === 0) return;
+    
+    const hint = document.getElementById('ocr-hint');
+    hint.textContent = '추가 중...';
+    
+    try {
+        const resp = await fetch('/api/portfolio/batch-add', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({stocks: selected})
+        });
+        const data = await resp.json();
+        hint.textContent = `${data.added}종목 추가 완료`;
+        setTimeout(() => location.reload(), 800);
+    } catch(e) {
+        hint.textContent = '❌ 추가 실패';
+        console.error(e);
+    }
 }
 </script>
 </body>
