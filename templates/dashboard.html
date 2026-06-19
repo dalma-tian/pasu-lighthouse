@@ -5,13 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>파수의 등대 — 지표 대시보드</title>
     <link rel="stylesheet" href="/static/style.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body>
-<div class="watermark-lighthouse"></div>
-<div class="watermark-artifacts"></div>
+<div class="watermark-lighthouse-center"></div>
+<div class="watermark-artifact artifact-coin artifact-1"></div>
+<div class="watermark-artifact artifact-arrow artifact-2"></div>
+<div class="watermark-artifact artifact-coin artifact-3"></div>
+<div class="watermark-artifact artifact-arrow artifact-4"></div>
+<div class="watermark-artifact artifact-coin artifact-5"></div>
+<div class="watermark-artifact artifact-arrow artifact-6"></div>
 <nav class="topbar">
-    <h1>🔭 파수의 등대</h1>
+    <h1><i data-lucide="telescope" class="icon-sm"></i> 파수의 등대</h1>
     <div class="tabs">
         <a href="/">뉴스</a>
         <a href="/watchlist">포트폴리오</a>
@@ -23,7 +29,7 @@
 <main class="feed">
     <div class="feed-header">
         <span class="feed-count">핵심 경제지표</span>
-        <button class="btn-refresh" onclick="refreshIndicators()">지표 갱신</button>
+        <button class="btn-refresh" onclick="refreshIndicators()"><i data-lucide="refresh-cw" class="icon-sm"></i> 지표 갱신</button>
     </div>
 
     {% if indicators %}
@@ -67,13 +73,15 @@
 
 <div class="modal-overlay" id="chartModal" onclick="if(event.target===this)closeChart()">
     <div class="modal-box">
-        <button class="modal-close" onclick="closeChart()">✕</button>
+        <button class="modal-close" onclick="closeChart()" aria-label="닫기"><i data-lucide="x" class="icon-sm"></i></button>
         <h3 id="chartTitle" style="margin:0 0 12px;font-size:16px;color:var(--color-text)"></h3>
         <div class="chart-wrap"><canvas id="chartCanvas"></canvas></div>
     </div>
 </div>
 
 <script>
+if (window.lucide) lucide.createIcons();
+
 let chartInstance = null;
 
 async function refreshIndicators() {

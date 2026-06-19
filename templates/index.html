@@ -3,14 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>파수의 등대 — 경제 뉴스</title>
+    <title>파수의 등대 - 경제 뉴스</title>
     <link rel="stylesheet" href="/static/style.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
-    <div class="watermark-lighthouse"></div>
-    <div class="watermark-artifacts"></div>
+    <div class="watermark-lighthouse-center"></div>
+    <div class="watermark-artifact artifact-coin artifact-1"></div>
+    <div class="watermark-artifact artifact-arrow artifact-2"></div>
+    <div class="watermark-artifact artifact-coin artifact-3"></div>
+    <div class="watermark-artifact artifact-arrow artifact-4"></div>
+    <div class="watermark-artifact artifact-coin artifact-5"></div>
+    <div class="watermark-artifact artifact-arrow artifact-6"></div>
+
     <nav class="topbar">
-        <h1>🔭 파수의 등대</h1>
+        <h1><i data-lucide="telescope" class="icon-sm"></i> 파수의 등대</h1>
         <div class="tabs">
             <a href="/" class="active">뉴스</a>
             <a href="/watchlist">포트폴리오</a>
@@ -19,19 +26,21 @@
         </div>
     </nav>
 
-    <!-- 검색바 -->
+    <section class="title-banner" aria-label="파수의 등대">
+        <img src="/static/title-typography.png" alt="파수의 등대">
+    </section>
+
     <div class="search-bar">
-        <span class="search-icon">🔍</span>
+        <i data-lucide="search" class="icon-sm search-icon"></i>
         <input type="text" class="search-input" placeholder="검색어 입력...">
     </div>
 
-    <!-- 통합 필터바 -->
     <div class="filter-bar-v2">
         <div class="filter-row">
-            <a href="/?tab={{ current_tab }}" class="filter-pill {% if current_stars == 'all' %}active{% endif %}">★ 전체</a>
-            <a href="/?tab={{ current_tab }}&stars=3" class="filter-pill {% if current_stars == '3' %}active{% endif %}">★★★</a>
-            <a href="/?tab={{ current_tab }}&stars=2" class="filter-pill {% if current_stars == '2' %}active{% endif %}">★★</a>
-            <a href="/?tab={{ current_tab }}&stars=1" class="filter-pill {% if current_stars == '1' %}active{% endif %}">★</a>
+            <a href="/?tab={{ current_tab }}" class="filter-pill {% if current_stars == 'all' %}active{% endif %}"><i data-lucide="sparkles" class="icon-xs"></i> 전체</a>
+            <a href="/?tab={{ current_tab }}&stars=3" class="filter-pill {% if current_stars == '3' %}active{% endif %}"><i data-lucide="star" class="icon-xs"></i><i data-lucide="star" class="icon-xs"></i><i data-lucide="star" class="icon-xs"></i></a>
+            <a href="/?tab={{ current_tab }}&stars=2" class="filter-pill {% if current_stars == '2' %}active{% endif %}"><i data-lucide="star" class="icon-xs"></i><i data-lucide="star" class="icon-xs"></i></a>
+            <a href="/?tab={{ current_tab }}&stars=1" class="filter-pill {% if current_stars == '1' %}active{% endif %}"><i data-lucide="star" class="icon-xs"></i></a>
             <span class="filter-sep"></span>
             <a href="#" class="filter-pill">종합</a>
             <a href="#" class="filter-pill">속보</a>
@@ -39,22 +48,12 @@
             <a href="#" class="filter-pill">반도체</a>
         </div>
         <div class="filter-row">
-            <a href="/?stars={{ current_stars }}" class="filter-pill {% if current_tab == 'all' %}active{% endif %}">🌐 전체</a>
-            <a href="/?tab=domestic&stars={{ current_stars }}" class="filter-pill {% if current_tab == 'domestic' %}active{% endif %}">🇰🇷 국내</a>
-            <a href="/?tab=global&stars={{ current_stars }}" class="filter-pill {% if current_tab == 'global' %}active{% endif %}">🌍 글로벌</a>
-            <a href="/?tab=portfolio&stars={{ current_stars }}" class="filter-pill {% if current_tab == 'portfolio' %}active{% endif %}">💼 내 포트폴리오</a>
+            <a href="/?stars={{ current_stars }}" class="filter-pill {% if current_tab == 'all' %}active{% endif %}"><i data-lucide="globe" class="icon-xs"></i> 전체</a>
+            <a href="/?tab=domestic&stars={{ current_stars }}" class="filter-pill {% if current_tab == 'domestic' %}active{% endif %}"><span class="flag-mark flag-kr"></span> 국내</a>
+            <a href="/?tab=global&stars={{ current_stars }}" class="filter-pill {% if current_tab == 'global' %}active{% endif %}"><i data-lucide="globe-2" class="icon-xs"></i> 글로벌</a>
+            <a href="/?tab=portfolio&stars={{ current_stars }}" class="filter-pill {% if current_tab == 'portfolio' %}active{% endif %}"><i data-lucide="briefcase" class="icon-xs"></i> 내 포트폴리오</a>
         </div>
     </div>
-
-    <section class="hero-section">
-        <div class="hero-text">
-            <p class="hero-tagline">파수의 등대</p>
-            <p class="hero-sub">금융정보의 빛이 되는 곳</p>
-        </div>
-        <div class="hero-image">
-            <img src="/static/lighthouse-hero.png" alt="등대 일러스트">
-        </div>
-    </section>
 
     {% if news_list %}
         {% if current_stars == 'all' %}
@@ -66,11 +65,10 @@
         {% endif %}
 
         {% if top_news %}
-        <!-- 🔥 오늘 주요뉴스 (2열 그리드) -->
         <section class="top-news-v2">
             <div class="top-news-header">
-                <span class="top-news-title">🔥 오늘 주요뉴스 <span class="chevron">▸</span></span>
-                <span class="top-news-toggle" onclick="this.closest('.top-news-v2').querySelector('.top-news-grid').classList.toggle('collapsed'); this.textContent = this.textContent === '▲' ? '▼' : '▲';">▲</span>
+                <span class="top-news-title"><i data-lucide="trending-up" class="icon-sm icon-accent"></i> 오늘 주요뉴스 <i data-lucide="chevron-right" class="icon-xs chevron"></i></span>
+                <span class="top-news-toggle" onclick="this.closest('.top-news-v2').querySelector('.top-news-grid').classList.toggle('collapsed'); this.querySelector('i').classList.toggle('is-collapsed');"><i data-lucide="chevron-down" class="icon-sm"></i></span>
             </div>
             <div class="top-news-grid">
                 {% for news in top_news[:4] %}
@@ -82,8 +80,8 @@
                     </div>
                     <a href="{{ news.link }}" target="_blank" class="card-title">{{ news.title }}</a>
                     <div class="card-footer">
-                        <span class="card-stars">★★★</span>
-                        <span class="card-views">👁 {{ news.view_count or 0 }}</span>
+                        <span class="card-stars"><i data-lucide="star" class="icon-xs"></i><i data-lucide="star" class="icon-xs"></i><i data-lucide="star" class="icon-xs"></i></span>
+                        <span class="card-views"><i data-lucide="eye" class="icon-xs"></i> {{ news.view_count or 0 }}</span>
                     </div>
                 </article>
                 {% endfor %}
@@ -91,13 +89,12 @@
         </section>
         {% endif %}
 
-        <!-- 뉴스피드 -->
         <main class="feed">
             <div class="feed-header-v2">
-                <span class="feed-title">📰 뉴스</span>
+                <span class="feed-title"><i data-lucide="newspaper" class="icon-sm"></i> 뉴스</span>
                 <div class="feed-controls">
-                    <span class="sort-dropdown">최신순 ▾</span>
-                    <button class="btn-refresh" onclick="refreshNews()">🔄</button>
+                    <span class="sort-dropdown">최신순 <i data-lucide="chevron-down" class="icon-xs"></i></span>
+                    <button class="btn-refresh" onclick="refreshNews()" aria-label="뉴스 새로고침"><i data-lucide="refresh-cw" class="icon-sm"></i></button>
                 </div>
             </div>
 
@@ -108,12 +105,12 @@
                     <span class="src-badge {% if '이데일리' in s %}src-blue{% elif '한국경제' in s %}src-red{% elif '연합뉴스' in s %}src-green{% elif '뉴스1' in s or '뉴시스' in s %}src-purple{% elif '조선' in s or '매일경제' in s %}src-orange{% endif %}">{{ s or '미상' }}</span>
                     <span class="card-time" data-time="{{ news.published_at or '' }}">{{ news.published_at or '' }}</span>
                     {% if news.stars %}
-                    <span class="card-stars-text">{% for i in range(news.stars) %}★{% endfor %}{% for i in range(3 - news.stars) %}☆{% endfor %}</span>
+                    <span class="card-stars">{% for i in range(news.stars) %}<i data-lucide="star" class="icon-xs star-filled"></i>{% endfor %}{% for i in range(3 - news.stars) %}<i data-lucide="star" class="icon-xs star-empty"></i>{% endfor %}</span>
                     {% endif %}
                 </div>
                 <a href="{{ news.link }}" target="_blank" class="card-title">{{ news.title }}</a>
                 <div class="card-footer">
-                    <span class="card-views">👁 {{ news.view_count or 0 }}</span>
+                    <span class="card-views"><i data-lucide="eye" class="icon-xs"></i> {{ news.view_count or 0 }}</span>
                 </div>
             </article>
             {% endfor %}
@@ -121,10 +118,10 @@
     {% else %}
         <main class="feed">
             <div class="feed-header-v2">
-                <span class="feed-title">📰 뉴스</span>
+                <span class="feed-title"><i data-lucide="newspaper" class="icon-sm"></i> 뉴스</span>
                 <div class="feed-controls">
-                    <span class="sort-dropdown">최신순 ▾</span>
-                    <button class="btn-refresh" onclick="refreshNews()">🔄</button>
+                    <span class="sort-dropdown">최신순 <i data-lucide="chevron-down" class="icon-xs"></i></span>
+                    <button class="btn-refresh" onclick="refreshNews()" aria-label="뉴스 새로고침"><i data-lucide="refresh-cw" class="icon-sm"></i></button>
                 </div>
             </div>
             <div class="empty">
@@ -133,7 +130,7 @@
                 <p class="empty-sub"><a href="/watchlist" style="color:var(--color-primary)">포트폴리오 페이지</a>에서 종목을 추가해보세요.</p>
                 {% else %}
                 <p class="empty-title">첫 뉴스를 기다리고 있어요</p>
-                <p class="empty-sub">잠시 후 자동으로 채워집니다</p>
+                <p class="empty-sub">잠시 뒤 자동으로 채워집니다.</p>
                 {% endif %}
             </div>
         </main>
@@ -151,23 +148,27 @@ function toRelativeTime(dateStr) {
     if (diff < 604800) return Math.floor(diff / 86400) + '일 전';
     return dateStr;
 }
+
 document.querySelectorAll('.card-time').forEach(function(el) {
     var t = el.dataset.time || el.textContent;
     var rel = toRelativeTime(t);
     if (rel) el.textContent = rel;
 });
 
+if (window.lucide) lucide.createIcons();
+
 async function refreshNews() {
     var btn = document.querySelector('.btn-refresh');
-    btn.textContent = '⏳';
+    btn.innerHTML = '<i data-lucide="loader-circle" class="icon-sm spin"></i>';
     btn.disabled = true;
+    if (window.lucide) lucide.createIcons();
     try {
         var resp = await fetch('/api/crawl');
         var data = await resp.json();
-        btn.textContent = '🔄 ' + data.new_articles + '건';
+        btn.textContent = '새 뉴스 ' + data.new_articles + '건';
         setTimeout(function() { location.reload(); }, 800);
     } catch(e) {
-        btn.textContent = '🔄 재시도';
+        btn.textContent = '다시 시도';
         btn.disabled = false;
     }
 }

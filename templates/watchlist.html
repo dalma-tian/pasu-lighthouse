@@ -5,12 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>파수의 등대 — 포트폴리오</title>
     <link rel="stylesheet" href="/static/style.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
-<div class="watermark-lighthouse"></div>
-<div class="watermark-artifacts"></div>
+<div class="watermark-lighthouse-center"></div>
+<div class="watermark-artifact artifact-coin artifact-1"></div>
+<div class="watermark-artifact artifact-arrow artifact-2"></div>
+<div class="watermark-artifact artifact-coin artifact-3"></div>
+<div class="watermark-artifact artifact-arrow artifact-4"></div>
+<div class="watermark-artifact artifact-coin artifact-5"></div>
+<div class="watermark-artifact artifact-arrow artifact-6"></div>
 <nav class="topbar">
-    <h1>🔭 파수의 등대</h1>
+    <h1><i data-lucide="telescope" class="icon-sm"></i> 파수의 등대</h1>
     <div class="tabs">
         <a href="/">뉴스</a>
         <a href="/watchlist" class="active">포트폴리오</a>
@@ -56,7 +62,7 @@
                     <td class="mono">{{ item.ticker }}</td>
                     <td>{{ item.name }}</td>
                     <td>{{ item.market }}</td>
-                    <td><button class="btn-del" onclick="deleteItem({{ item.id }}, this)" title="삭제">✕</button></td>
+                    <td><button class="btn-del" onclick="deleteItem({{ item.id }}, this)" title="삭제" aria-label="삭제"><i data-lucide="x" class="icon-sm"></i></button></td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -71,6 +77,8 @@
 </main>
 
 <script>
+if (window.lucide) lucide.createIcons();
+
 let debounceTimer;
 
 document.getElementById('name').addEventListener('input', function() {
