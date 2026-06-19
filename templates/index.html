@@ -31,6 +31,16 @@
         <a href="/?tab=portfolio&stars={{ current_stars }}" class="{% if current_tab == 'portfolio' %}active{% endif %}">💼 내 포트폴리오</a>
     </div>
 
+    <section class="hero-section">
+        <div class="hero-text">
+            <p class="hero-tagline">파수의 등대</p>
+            <p class="hero-sub">금융정보의 빛이 되는 곳</p>
+        </div>
+        <div class="hero-image">
+            <img src="/static/lighthouse-hero.png" alt="등대 일러스트">
+        </div>
+    </section>
+
     <main class="feed">
         <div class="feed-header">
             <span class="feed-count">{% if news_list %}{{ news_list|length }}건{% endif %}</span>
