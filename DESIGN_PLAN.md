@@ -5,78 +5,64 @@
 
 ---
 
-## 작업 1: 좌측 상단 텍스트 → 네모박스로 이동 + 고급스럽게
+## 작업 1: 타이틀 타이포그래피 이미지 → 검색바 위 배치
 
 ### 현재
-- 히어로 섹션 내 좌측: "파수의 등대" + "금융정보의 빛이 되는 곳"
-- 일반 폰트, 평범한 배치
+- 히어로 섹션 내 좌측: "파수의 등대" + "금융정보의 빛이 되는 곳" (텍스트)
 
 ### 목표
-- 검색바와 히어로 섹션 사이 영역(혹은 히어로 섹션 자체를 개편)에 **선으로 연결된 고급 네모박스** 형태로 배치
-- 위아래 충분한 여백(whitespace) 확보
-- 타이포그래피 고급화: 얇은 웨이트 + 넓은 자간 + 세리프 혹은 고급 산세리프
+- **FAL 이미지 생성**으로 "파수의 등대" + "금융정보의 빛이 되는 곳"을 고급 타이포그래피 이미지로 제작
+- 검색바 **위** 공간에 배치 (히어로 섹션 완전 제거)
+- 검색바 + 필터바 전체를 아래로 밀기
 
-### CSS 스펙
-```css
-.hero-text-refined {
-  display: inline-block;
-  border: 1px solid rgba(0,0,0,0.08);
-  border-radius: 2px;
-  padding: 20px 32px;
-  margin: 24px auto;
-  text-align: center;
-  position: relative;
-}
-.hero-text-refined::before {
-  content: '';
-  position: absolute;
-  top: -1px; left: -1px; right: -1px; bottom: -1px;
-  border: 1px solid rgba(0,0,0,0.04);
-  border-radius: 2px;
-  margin: 4px;
-  pointer-events: none;
-}
-.hero-text-refined .main-title {
-  font-family: 'Playfair Display', 'Noto Serif KR', serif;
-  font-size: 32px;
-  font-weight: 400;
-  letter-spacing: 0.15em;
-  color: #1a1a2e;
-  line-height: 1.3;
-}
-.hero-text-refined .sub-title {
-  font-family: 'Inter', 'Noto Sans KR', sans-serif;
-  font-size: 13px;
-  font-weight: 300;
-  letter-spacing: 0.2em;
-  color: #999;
-  margin-top: 4px;
-}
-/* 연결선: 좌측에서 박스로 이어지는 얇은 수평선 */
-.connector-line {
-  width: 40px;
-  height: 1px;
-  background: #ddd;
-  margin-right: 12px;
-  flex-shrink: 0;
-}
+### FAL 프롬프트
 ```
+A minimalist luxury typography design on transparent background.
+Main text "파수의 등대" in elegant Korean serif font, large, centered.
+Subtitle "금융정보의 빛이 되는 곳" below in small refined sans-serif.
+Color: deep charcoal (#1a1a2e) on transparent.
+Style: high-end magazine masthead, subtle letter-spacing, thin weight.
+No decorations, no icons, no background — pure typography only.
+Aspect ratio: 4:1 (wide banner), minimal padding.
+```
+
+### 배치 스펙
+- `index.html` 최상단 (topbar 아래, 검색바 위)
+- `<img>` 태그로 삽입
+- max-width: 600px, 중앙 정렬
+- 상하 margin: 32px → 검색바가 자연스럽게 밀려 내려감
 
 ### HTML 구조
 ```html
-<section class="hero-section">
-  <div class="hero-text-box">
-    <div class="connector-line"></div>
-    <div class="hero-text-refined">
-      <p class="main-title">파수의 등대</p>
-      <p class="sub-title">금융정보의 빛이 되는 곳</p>
-    </div>
-  </div>
-</section>
+<nav class="topbar">...</nav>
+
+<!-- 신규: 타이틀 타이포그래피 이미지 -->
+<div class="title-banner">
+  <img src="/static/title-typography.png" alt="파수의 등대">
+</div>
+
+<!-- 검색바 (원래 위치에서 아래로 밀림) -->
+<div class="search-bar">...</div>
+```
+
+### CSS
+```css
+.title-banner {
+  text-align: center;
+  margin: 32px auto 24px;
+  max-width: 600px;
+}
+.title-banner img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
 ```
 
 ### 수정 파일
-- `templates/index.html` — 히어로 섹션 HTML 교체
+- `static/title-typography.png` — FAL로 신규 생성
+- `templates/index.html` — 히어로 섹션 제거 → `.title-banner` 추가
+- `static/style.css` — `.hero-section` 제거 → `.title-banner` 추가
 - `static/style.css` — `.hero-section`, `.hero-text` → `.hero-text-refined` 로 교체
 
 ---
