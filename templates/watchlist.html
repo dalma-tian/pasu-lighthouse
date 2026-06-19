@@ -60,8 +60,8 @@
                     <tr>
                         <th><input type="checkbox" id="ocr-select-all" onchange="toggleAllOcr(this)" checked></th>
                         <th>종목명</th>
-                        <th>티커</th>
-                        <th>수량</th>
+                        <th>보유수량</th>
+                        <th>현재가</th>
                         <th>매칭률</th>
                     </tr>
                 </thead>
@@ -259,9 +259,9 @@ function renderOcrResults() {
                 <span class="ocr-name">${s.name}</span>
                 ${s.raw_ocr !== s.name ? `<span class="ocr-raw">OCR: ${s.raw_ocr}</span>` : ''}
             </td>
-            <td class="mono">${s.ticker}</td>
-            <td>${s.quantity}주</td>
-            <td><span class="ocr-conf ${s.confidence >= 0.8 ? 'ocr-conf-high' : s.confidence >= 0.6 ? 'ocr-conf-mid' : 'ocr-conf-low'}">${Math.round(s.confidence * 100)}%</span></td>
+            <td>${s.quantity ? s.quantity.toLocaleString()+'주' : '-'}</td>
+            <td>${s.price ? s.price.toLocaleString()+'원' : '-'}</td>
+            <td><span class="ocr-conf ${s.confidence >= 0.8 ? 'ocr-conf-high' : s.confidence >= 0.6 ? 'ocr-conf-mid' : 'ocr-conf-low'}" title="DB 종목명과 얼마나 일치하는지">${Math.round(s.confidence * 100)}%</span></td>
         </tr>
     `).join('');
     document.getElementById('ocr-select-all').checked = true;
