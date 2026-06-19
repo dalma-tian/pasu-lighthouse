@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>파수의 등대 - 경제 뉴스</title>
-    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="/static/style.css?v={{ asset_version }}">
     <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
@@ -17,12 +17,12 @@
     <div class="watermark-artifact artifact-arrow artifact-6"></div>
 
     <nav class="topbar">
-        <h1><i data-lucide="telescope" class="icon-sm"></i> 파수의 등대</h1>
+        <h1><span class="brand-mark"><i data-lucide="telescope" class="icon-sm"></i></span><span>파수의 등대</span></h1>
         <div class="tabs">
-            <a href="/" class="active">뉴스</a>
-            <a href="/watchlist">포트폴리오</a>
-            <a href="/calendar">캘린더</a>
-            <a href="/dashboard">지표</a>
+            <a href="/" class="active"><i data-lucide="newspaper" class="icon-xs"></i>뉴스</a>
+            <a href="/watchlist"><i data-lucide="briefcase" class="icon-xs"></i>포트폴리오</a>
+            <a href="/calendar"><i data-lucide="calendar-days" class="icon-xs"></i>캘린더</a>
+            <a href="/dashboard"><i data-lucide="activity" class="icon-xs"></i>지표</a>
         </div>
     </nav>
 

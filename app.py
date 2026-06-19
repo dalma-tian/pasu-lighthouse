@@ -4,7 +4,23 @@ from models import init_db, get_db, backup_watchlist
 import scorer
 
 app = Flask(__name__)
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
 init_db()
+
+@app.context_processor
+def inject_asset_version():
+    import os
+    try:
+        css_path = os.path.join(app.root_path, 'static', 'style.css')
+        return {'asset_version': int(os.path.getmtime(css_path))}
+    except OSError:
+        return {'asset_version': 1}
+
+@app.after_request
+def prevent_static_cache(response):
+    if request.path.startswith('/static/'):
+        response.headers['Cache-Control'] = 'no-store, max-age=0'
+    return response
 
 @app.route('/')
 def index():
