@@ -1,42 +1,42 @@
-# 파수의 등대 — Phase 1.5 디자인 수정 (히어로 섹션 + 그라데이션)
+# 파수의 등대 — Phase 1.6: 전체 페이지 파스텔 핑크 물결 배경
 
-## 현재 상태
-Phase 1 디자인 완료. tokens.css + style.css 546줄 + 4개 템플릿 개선 완료.
+## 수정사항
 
-## 추가 수정사항
+### 현재 문제
+- 히어로 섹션(220px)에만 그라데이션 있음
+- 그 아래는 그냥 흰색 배경 → 단절된 느낌
 
-### 1. 히어로 섹션 (YouTube Music 레퍼런스)
-- **현재**: 상단바 바로 아래부터 뉴스 카드 시작
-- **변경**: 상단바 아래에 220px 높이의 브랜딩 히어로 섹션 추가
-- 히어로는 홈페이지(/)에서만 표시. 다른 페이지(watchlist, calendar, dashboard)는 기존대로.
-- 레이아웃: 좌측 텍스트 + 우측 일러스트
-  - 좌측: 볼드 태그라인 "파수의 등대" (24px), 서브텍스트 "금융정보의 빛이 되는 곳" (14px, text-secondary)
-  - 우측: 등대 3D 일러스트 (static/lighthouse-hero.png), max-width 160px
+### 변경 방향
+- **body 전체 배경**을 파스텔 핑크 물결 패턴으로 교체
+- 여러 개의 부드러운 radial-gradient 타원이 페이지 전체에 은은하게 퍼짐
+- 히어로 섹션 배경은 투명하게 → body 배경이 자연스럽게 비침
+- 뉴스 카드, 필터바, 탭바는 흰색 배경 유지 (가독성)
+- 카드 hover 시 살짝 핑크빛 그림자
 
-### 2. 파스텔 핑크 그라데이션 배경 (토스증권 레퍼런스)
-- 히어로 섹션의 배경에만 적용
-- 그라데이션: `linear-gradient(135deg, #fce4ec 0%, #f8bbd0 25%, #ffffff 70%, #e8eaf6 100%)`
-- `background-size: 400% 400%`
-- 슬로우 키프레임 애니메이션 (20초 루프, 물결처럼 부드럽게):
+### CSS 스펙
+
 ```css
-@keyframes heroGradient {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+body {
+  background-color: #fef5f7;
+  background-image: 
+    radial-gradient(ellipse at 15% 30%, rgba(252, 228, 236, 0.7) 0%, transparent 55%),
+    radial-gradient(ellipse at 85% 15%, rgba(248, 187, 208, 0.4) 0%, transparent 50%),
+    radial-gradient(ellipse at 60% 70%, rgba(232, 234, 246, 0.5) 0%, transparent 55%),
+    radial-gradient(ellipse at 10% 85%, rgba(252, 228, 236, 0.5) 0%, transparent 45%),
+    radial-gradient(ellipse at 90% 55%, rgba(248, 187, 208, 0.3) 0%, transparent 45%),
+    radial-gradient(ellipse at 40% 50%, rgba(255, 255, 255, 0.8) 0%, transparent 60%);
+  background-attachment: fixed;
 }
 ```
 
-### 3. 히어로 섹션 아래 뉴스 콘텐츠
-- 히어로 섹션 직후에 기존 뉴스피드가 이어짐
-- filter-bar, tab-bar, feed는 그대로 유지
+### 히어로 섹션
+- 배경을 `transparent`로 변경 → body 물결이 그대로 비침
+- 텍스트 + 일러스트는 그대로
 
-## 구현 방법
-1. `templates/index.html`: `<main class="feed">` 바로 앞에 히어로 섹션 HTML 추가
-2. `static/style.css`: 히어로 섹션 CSS + 그라데이션 애니메이션 추가
-3. 이미지: `static/lighthouse-hero.png` (984KB, 이미 배치됨)
-4. 반응형: 모바일(≤480px)에서는 히어로 높이 160px, 일러스트 100px
+### 카드
+- 배경은 흰색 유지
+- hover 그림자에 살짝 핑크빛: `box-shadow: 0 4px 20px rgba(248, 187, 208, 0.25);`
 
-## 중요
-- 기존 CSS/JS/템플릿 기능 전혀 건드리지 말 것
-- filter-bar, tab-bar, feed, 카드 컴포넌트 그대로 유지
-- dashboard, calendar, watchlist 페이지는 히어로 없이 그대로
+## 수정 파일
+1. `static/style.css` — body 배경 교체, 히어로 배경 transparent, 카드 hover 그림자
+2. 변경 최소화. 나머지 전부 그대로.

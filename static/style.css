@@ -8,7 +8,15 @@ body {
   font-size: 15px;
   line-height: 1.5;
   color: var(--color-text-secondary);
-  background: var(--color-bg-secondary);
+  background-color: #fef5f7;
+  background-image:
+    radial-gradient(ellipse at 15% 30%, rgba(252, 228, 236, 0.7) 0%, transparent 55%),
+    radial-gradient(ellipse at 85% 15%, rgba(248, 187, 208, 0.4) 0%, transparent 50%),
+    radial-gradient(ellipse at 60% 70%, rgba(232, 234, 246, 0.5) 0%, transparent 55%),
+    radial-gradient(ellipse at 10% 85%, rgba(252, 228, 236, 0.5) 0%, transparent 45%),
+    radial-gradient(ellipse at 90% 55%, rgba(248, 187, 208, 0.3) 0%, transparent 45%),
+    radial-gradient(ellipse at 40% 50%, rgba(255, 255, 255, 0.8) 0%, transparent 60%);
+  background-attachment: fixed;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -163,9 +171,9 @@ button { font-family: inherit; cursor: pointer; }
   transition: box-shadow var(--transition), transform var(--transition);
 }
 .card:hover {
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 4px 20px rgba(248, 187, 208, 0.25);
   transform: translateY(-1px);
-  border-color: var(--color-primary-light);
+  border-color: rgba(248, 187, 208, 0.4);
 }
 .card-featured { border-left-color: var(--color-warning); }
 
@@ -542,9 +550,7 @@ button { font-family: inherit; cursor: pointer; }
 }
 .hero-section {
   height: 220px;
-  background: linear-gradient(135deg, #fce4ec 0%, #f8bbd0 25%, #ffffff 70%, #e8eaf6 100%);
-  background-size: 400% 400%;
-  animation: heroGradient 20s ease infinite;
+  background: transparent;
   display: flex;
   align-items: center;
   justify-content: space-between;
