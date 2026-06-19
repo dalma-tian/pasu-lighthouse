@@ -578,6 +578,231 @@ button { font-family: inherit; cursor: pointer; }
   display: block;
 }
 
+/* ── Phase 2: 검색바 ── */
+.search-bar {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 12px 20px 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--search-bg);
+  border-radius: var(--search-radius);
+  margin-bottom: 6px;
+}
+.search-icon {
+  font-size: 16px;
+  opacity: 0.4;
+  flex-shrink: 0;
+}
+.search-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  color: var(--color-text-secondary);
+  outline: none;
+}
+.search-input::placeholder {
+  color: #aaa;
+}
+
+/* ── Phase 2: 통합 필터바 ── */
+.filter-bar-v2 {
+  padding: 6px 20px 4px;
+  max-width: 960px;
+  margin: 0 auto;
+}
+.filter-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+.filter-pill {
+  display: inline-block;
+  padding: var(--filter-pill-padding);
+  border-radius: var(--filter-pill-radius);
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  background: var(--filter-inactive-bg);
+  color: var(--filter-inactive-text);
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+.filter-pill.active {
+  background: var(--filter-active-bg);
+  color: var(--filter-active-text);
+}
+.filter-pill:hover:not(.active) {
+  background: #e5e7eb;
+}
+.filter-sep {
+  width: 1px;
+  height: 20px;
+  background: #ddd;
+  margin: 0 4px;
+}
+
+/* ── Phase 2: 오늘 주요뉴스 (2열 그리드) ── */
+.top-news-v2 {
+  max-width: 960px;
+  margin: 12px auto;
+  padding: 0 20px;
+}
+.top-news-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.top-news-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+.top-news-title .chevron {
+  color: var(--color-primary);
+  margin-left: 2px;
+}
+.top-news-toggle {
+  cursor: pointer;
+  font-size: 14px;
+  color: #999;
+  user-select: none;
+  padding: 2px 8px;
+  border-radius: 6px;
+  transition: color 0.15s;
+}
+.top-news-toggle:hover {
+  color: var(--color-text-secondary);
+}
+.top-news-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.top-news-grid.collapsed {
+  display: none;
+}
+
+/* ── Phase 2: 카드 (card-top / card-footer / card-views) ── */
+.card-top {
+  padding: 14px 16px;
+  border-radius: var(--card-radius-lg);
+  min-height: 110px;
+}
+.card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 8px;
+}
+.card-views {
+  font-size: 12px;
+  color: #999;
+}
+
+/* ── Phase 2: 뉴스피드 헤더 ── */
+.feed-header-v2 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f0f0f0;
+}
+.feed-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+.feed-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.sort-dropdown {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 12px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 13px;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  background: var(--color-bg);
+  user-select: none;
+}
+.sort-dropdown:hover {
+  border-color: #ccc;
+}
+
+/* ── 등대 워터마크 ── */
+.watermark-lighthouse {
+  position: fixed;
+  bottom: 40px;
+  right: 30px;
+  width: 240px;
+  height: 240px;
+  background: url('/static/lighthouse-watermark.png') no-repeat center/contain;
+  opacity: 0.10;
+  pointer-events: none;
+  z-index: 0;
+  animation: floatLighthouse 10s ease-in-out infinite;
+  transition: opacity 0.3s;
+}
+
+/* 등대 주변 아티팩트(금화, 화살표) - 떠다니는 효과 */
+.watermark-artifacts::before {
+  content: '';
+  position: fixed;
+  bottom: 120px;
+  right: 80px;
+  width: 32px;
+  height: 32px;
+  background: radial-gradient(circle, #fbbf24 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.08;
+  animation: floatArtifact1 7s ease-in-out infinite;
+}
+.watermark-artifacts::after {
+  content: '';
+  position: fixed;
+  bottom: 180px;
+  right: 210px;
+  width: 24px;
+  height: 24px;
+  background: radial-gradient(circle, #f472b6 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.07;
+  animation: floatArtifact2 9s ease-in-out infinite;
+}
+
+@keyframes floatLighthouse {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  25%  { transform: translateY(-6px) rotate(0.3deg); }
+  50%  { transform: translateY(-3px) rotate(0deg); }
+  75%  { transform: translateY(-10px) rotate(-0.3deg); }
+}
+@keyframes floatArtifact1 {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.5; }
+  33%  { transform: translate(18px, -24px) scale(1.4); opacity: 0.2; }
+  66%  { transform: translate(-8px, -12px) scale(0.7); opacity: 0.4; }
+}
+@keyframes floatArtifact2 {
+  0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.4; }
+  50%  { transform: translate(-24px, -30px) scale(1.5); opacity: 0.15; }
+}
+
 /* ── Responsive ── */
 @media (max-width: 480px) {
   .topbar { padding: 0 var(--space-md); }
@@ -589,4 +814,17 @@ button { font-family: inherit; cursor: pointer; }
   .autocomplete-dropdown { min-width: 280px; }
   .hero-section { height: 160px; padding: 0 var(--space-md); }
   .hero-image img { max-width: 100px; }
+  .watermark-lighthouse { width: 160px; height: 160px; bottom: 20px; right: 10px; }
+  /* Phase 2 responsive */
+  .search-bar { max-width: 100%; margin: 0 12px; padding: 10px 16px; }
+  .filter-row { gap: 4px; }
+  .filter-pill { padding: 4px 10px; font-size: 12px; }
+  .top-news-grid { grid-template-columns: 1fr; }
+  .top-news-v2 { padding: 0 12px; }
+  .feed-header-v2 { flex-direction: column; align-items: flex-start; gap: 8px; }
+}
+
+@media (max-width: 768px) {
+  .top-news-grid { grid-template-columns: 1fr; }
+  .search-bar { max-width: 100%; }
 }

@@ -15,6 +15,7 @@
   --color-bg-tertiary: #f1f5f9;
   --color-bg-hover: #f3f5f8;
   --color-text: #1a1a2e;
+  --color-text-primary: #1a1a2e;
   --color-text-secondary: #6b7280;
   --color-text-tertiary: #9ca3af;
   --color-border: #e5e7eb;
@@ -50,4 +51,20 @@
   --transition: 0.15s ease;
   --z-dropdown: 100;
   --z-modal: 1000;
+
+  /* ── Phase 2: Search & Filter ── */
+  --search-bg: #f1f3f5;
+  --search-radius: 24px;
+  --filter-active-bg: #2d2d2d;
+  --filter-active-text: #ffffff;
+  --filter-inactive-bg: #f1f3f5;
+  --filter-inactive-text: #555555;
+  --filter-pill-radius: 20px;
+  --filter-pill-padding: 6px 14px;
+
+  /* ── Phase 2: Cards ── */
+  --card-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  --card-hover-shadow: 0 4px 16px rgba(248, 187, 208, 0.2);
+  --card-radius-sm: 10px;
+  --card-radius-lg: 14px;
 }

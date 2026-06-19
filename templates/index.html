@@ -7,6 +7,8 @@
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
+    <div class="watermark-lighthouse"></div>
+    <div class="watermark-artifacts"></div>
     <nav class="topbar">
         <h1>🔭 파수의 등대</h1>
         <div class="tabs">
@@ -17,18 +19,31 @@
         </div>
     </nav>
 
-    <div class="filter-bar">
-        <a href="/?tab={{ current_tab }}" class="{% if current_stars == 'all' %}active{% endif %}">전체</a>
-        <a href="/?tab={{ current_tab }}&stars=3">★★★ 필수</a>
-        <a href="/?tab={{ current_tab }}&stars=2">★★ 주요</a>
-        <a href="/?tab={{ current_tab }}&stars=1">★ 참고</a>
+    <!-- 검색바 -->
+    <div class="search-bar">
+        <span class="search-icon">🔍</span>
+        <input type="text" class="search-input" placeholder="검색어 입력...">
     </div>
 
-    <div class="tab-bar">
-        <a href="/?stars={{ current_stars }}" class="{% if current_tab == 'all' %}active{% endif %}">전체</a>
-        <a href="/?tab=domestic&stars={{ current_stars }}" class="{% if current_tab == 'domestic' %}active{% endif %}">🇰🇷 국내</a>
-        <a href="/?tab=global&stars={{ current_stars }}" class="{% if current_tab == 'global' %}active{% endif %}">🌍 글로벌</a>
-        <a href="/?tab=portfolio&stars={{ current_stars }}" class="{% if current_tab == 'portfolio' %}active{% endif %}">💼 내 포트폴리오</a>
+    <!-- 통합 필터바 -->
+    <div class="filter-bar-v2">
+        <div class="filter-row">
+            <a href="/?tab={{ current_tab }}" class="filter-pill {% if current_stars == 'all' %}active{% endif %}">★ 전체</a>
+            <a href="/?tab={{ current_tab }}&stars=3" class="filter-pill {% if current_stars == '3' %}active{% endif %}">★★★</a>
+            <a href="/?tab={{ current_tab }}&stars=2" class="filter-pill {% if current_stars == '2' %}active{% endif %}">★★</a>
+            <a href="/?tab={{ current_tab }}&stars=1" class="filter-pill {% if current_stars == '1' %}active{% endif %}">★</a>
+            <span class="filter-sep"></span>
+            <a href="#" class="filter-pill">종합</a>
+            <a href="#" class="filter-pill">속보</a>
+            <a href="#" class="filter-pill">분석</a>
+            <a href="#" class="filter-pill">반도체</a>
+        </div>
+        <div class="filter-row">
+            <a href="/?stars={{ current_stars }}" class="filter-pill {% if current_tab == 'all' %}active{% endif %}">🌐 전체</a>
+            <a href="/?tab=domestic&stars={{ current_stars }}" class="filter-pill {% if current_tab == 'domestic' %}active{% endif %}">🇰🇷 국내</a>
+            <a href="/?tab=global&stars={{ current_stars }}" class="filter-pill {% if current_tab == 'global' %}active{% endif %}">🌍 글로벌</a>
+            <a href="/?tab=portfolio&stars={{ current_stars }}" class="filter-pill {% if current_tab == 'portfolio' %}active{% endif %}">💼 내 포트폴리오</a>
+        </div>
     </div>
 
     <section class="hero-section">
@@ -41,37 +56,50 @@
         </div>
     </section>
 
-    <main class="feed">
-        <div class="feed-header">
-            <span class="feed-count">{% if news_list %}{{ news_list|length }}건{% endif %}</span>
-            <button class="btn-refresh" onclick="refreshNews()">최신 뉴스 가져오기</button>
-        </div>
+    {% if news_list %}
+        {% if current_stars == 'all' %}
+            {% set top_news = news_list | selectattr('stars', 'equalto', 3) | list %}
+            {% set rest_news = news_list | rejectattr('stars', 'equalto', 3) | list %}
+        {% else %}
+            {% set top_news = [] %}
+            {% set rest_news = news_list %}
+        {% endif %}
 
-        {% if news_list %}
-            {% if current_stars == 'all' %}
-                {% set top_news = news_list | selectattr('stars', 'equalto', 3) | list %}
-                {% set rest_news = news_list | rejectattr('stars', 'equalto', 3) | list %}
-            {% else %}
-                {% set top_news = [] %}
-                {% set rest_news = news_list %}
-            {% endif %}
-
-            {% if top_news %}
-            <section class="top-news">
-                <div class="section-label">오늘 주요 뉴스</div>
-                {% for news in top_news %}
+        {% if top_news %}
+        <!-- 🔥 오늘 주요뉴스 (2열 그리드) -->
+        <section class="top-news-v2">
+            <div class="top-news-header">
+                <span class="top-news-title">🔥 오늘 주요뉴스 <span class="chevron">▸</span></span>
+                <span class="top-news-toggle" onclick="this.closest('.top-news-v2').querySelector('.top-news-grid').classList.toggle('collapsed'); this.textContent = this.textContent === '▲' ? '▼' : '▲';">▲</span>
+            </div>
+            <div class="top-news-grid">
+                {% for news in top_news[:4] %}
                 {% set s = news.source or '' %}
-                <article class="card card-featured">
+                <article class="card card-top">
                     <div class="card-meta">
-                        <span class="src-badge {% if '이데일리' in s %}src-blue{% elif '한국경제' in s %}src-red{% elif '연합뉴스' in s %}src-green{% elif '뉴스1' in s or '뉴시스' in s %}src-purple{% elif '조선' in s or '매일경제' in s %}src-orange{% endif %}">{{ s or '미상' }}</span>
+                        <span class="src-badge {% if '이데일리' in s %}src-blue{% elif '한국경제' in s %}src-red{% elif '연합뉴스' in s %}src-green{% elif '뉴스1' in s or '뉴시스' in s %}src-purple{% elif '조선' in s or '매일경제' in s %}src-orange{% endif %}">{{ s or '미상' }} · <span class="src-cat">정보</span></span>
                         <span class="card-time" data-time="{{ news.published_at or '' }}">{{ news.published_at or '' }}</span>
-                        <span class="card-stars-text">★★★</span>
                     </div>
                     <a href="{{ news.link }}" target="_blank" class="card-title">{{ news.title }}</a>
+                    <div class="card-footer">
+                        <span class="card-stars">★★★</span>
+                        <span class="card-views">👁 {{ news.view_count or 0 }}</span>
+                    </div>
                 </article>
                 {% endfor %}
-            </section>
-            {% endif %}
+            </div>
+        </section>
+        {% endif %}
+
+        <!-- 뉴스피드 -->
+        <main class="feed">
+            <div class="feed-header-v2">
+                <span class="feed-title">📰 뉴스</span>
+                <div class="feed-controls">
+                    <span class="sort-dropdown">최신순 ▾</span>
+                    <button class="btn-refresh" onclick="refreshNews()">🔄</button>
+                </div>
+            </div>
 
             {% for news in rest_news %}
             {% set s = news.source or '' %}
@@ -84,9 +112,21 @@
                     {% endif %}
                 </div>
                 <a href="{{ news.link }}" target="_blank" class="card-title">{{ news.title }}</a>
+                <div class="card-footer">
+                    <span class="card-views">👁 {{ news.view_count or 0 }}</span>
+                </div>
             </article>
             {% endfor %}
-        {% else %}
+        </main>
+    {% else %}
+        <main class="feed">
+            <div class="feed-header-v2">
+                <span class="feed-title">📰 뉴스</span>
+                <div class="feed-controls">
+                    <span class="sort-dropdown">최신순 ▾</span>
+                    <button class="btn-refresh" onclick="refreshNews()">🔄</button>
+                </div>
+            </div>
             <div class="empty">
                 {% if current_tab == 'portfolio' %}
                 <p class="empty-title">관심 종목이 없거나 관련 뉴스가 없어요</p>
@@ -96,8 +136,8 @@
                 <p class="empty-sub">잠시 후 자동으로 채워집니다</p>
                 {% endif %}
             </div>
-        {% endif %}
-    </main>
+        </main>
+    {% endif %}
 
 <script>
 function toRelativeTime(dateStr) {
@@ -119,15 +159,15 @@ document.querySelectorAll('.card-time').forEach(function(el) {
 
 async function refreshNews() {
     var btn = document.querySelector('.btn-refresh');
-    btn.textContent = '수집 중...';
+    btn.textContent = '⏳';
     btn.disabled = true;
     try {
         var resp = await fetch('/api/crawl');
         var data = await resp.json();
-        btn.textContent = data.new_articles + '건 추가됨';
+        btn.textContent = '🔄 ' + data.new_articles + '건';
         setTimeout(function() { location.reload(); }, 800);
     } catch(e) {
-        btn.textContent = '다시 시도해주세요';
+        btn.textContent = '🔄 재시도';
         btn.disabled = false;
     }
 }
