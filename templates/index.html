@@ -58,8 +58,8 @@
 
     {% if news_list %}
         {% if current_stars == 'all' %}
-            {% set top_news = news_list | selectattr('stars', 'equalto', 3) | list %}
-            {% set rest_news = news_list | rejectattr('stars', 'equalto', 3) | list %}
+            {% set top_news = news_list | selectattr('stars', 'ge', 2) | list %}
+            {% set rest_news = news_list | rejectattr('stars', 'ge', 2) | list %}
         {% else %}
             {% set top_news = [] %}
             {% set rest_news = news_list %}
