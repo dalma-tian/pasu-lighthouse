@@ -208,10 +208,19 @@ def extract_stocks_from_ocr_results(ocr_results):
 
 def process_portfolio_image(image_path, stock_db=None):
     import easyocr
+    import numpy as np
+    from PIL import Image
+    
     if stock_db is None: stock_db = load_stock_db()
     
+    # 이미지 로드 및 업스케일 (작은 이미지에서 OCR 정확도 향상)
+    img = Image.open(image_path)
+    w, h = img.size
+    if min(w, h) < 1200:
+        img = img.resize((w * 2, h * 2), Image.LANCZOS)
+    
     reader = easyocr.Reader(['ko', 'en'], gpu=False)
-    results = reader.readtext(image_path)
+    results = reader.readtext(np.array(img))
     raw = extract_stocks_from_ocr_results(results)
     
     matched, seen_tickers = [], set()
