@@ -1,0 +1,53 @@
+:root {
+  /* ── Core palette (CLAUDE.md spec) ── */
+  --color-primary: #3b82f6;
+  --color-primary-hover: #2563eb;
+  --color-primary-light: #eff6ff;
+  --color-trust: #1d4ed8;
+  --color-alert: #e53e3e;
+  --color-alert-light: #fef2f2;
+  --color-positive: #059669;
+  --color-positive-light: #ecfdf5;
+  --color-warning: #f59e0b;
+  --color-warning-light: #fffbeb;
+  --color-bg: #ffffff;
+  --color-bg-secondary: #f8f9fc;
+  --color-bg-tertiary: #f1f5f9;
+  --color-bg-hover: #f3f5f8;
+  --color-text: #1a1a2e;
+  --color-text-secondary: #6b7280;
+  --color-text-tertiary: #9ca3af;
+  --color-border: #e5e7eb;
+  --color-border-light: #f3f4f6;
+
+  /* ── Spacing ── */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+
+  /* ── Radius ── */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-full: 9999px;
+
+  /* ── Shadows ── */
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 2px 8px rgba(0,0,0,0.06);
+  --shadow-lg: 0 4px 16px rgba(0,0,0,0.08);
+
+  /* ── Typography ── */
+  --font-sans: 'Inter', 'Noto Sans KR', -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', 'Consolas', monospace;
+
+  /* ── Layout ── */
+  --topbar-height: 56px;
+  --content-max: 768px;
+
+  /* ── Misc ── */
+  --transition: 0.15s ease;
+  --z-dropdown: 100;
+  --z-modal: 1000;
+}

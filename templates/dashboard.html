@@ -6,43 +6,22 @@
     <title>파수의 등대 — 지표 대시보드</title>
     <link rel="stylesheet" href="/static/style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    <style>
-        .indicator-card { cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; }
-        .indicator-card:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.10); }
-        .indicator-card:active { transform: translateY(0); }
-        .modal-overlay {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.45); z-index: 1000; justify-content: center; align-items: center;
-        }
-        .modal-overlay.active { display: flex; }
-        .modal-box {
-            background: #fff; border-radius: 16px; padding: 24px; width: 90%; max-width: 700px;
-            max-height: 85vh; position: relative; box-shadow: 0 8px 40px rgba(0,0,0,0.18);
-        }
-        .modal-close {
-            position: absolute; top: 12px; right: 16px; font-size: 22px; cursor: pointer;
-            color: #999; background: none; border: none; line-height: 1;
-        }
-        .modal-close:hover { color: #333; }
-        .chart-wrap { width: 100%; height: 320px; }
-        @media (max-width: 600px) { .chart-wrap { height: 220px; } }
-    </style>
 </head>
 <body>
 <nav class="topbar">
     <h1>🔭 파수의 등대</h1>
     <div class="tabs">
-        <a href="/">📰 뉴스</a>
-        <a href="/watchlist">💼 포트폴리오</a>
-        <a href="/calendar">📅 캘린더</a>
-        <a href="/dashboard" class="active">📊 지표</a>
+        <a href="/">뉴스</a>
+        <a href="/watchlist">포트폴리오</a>
+        <a href="/calendar">캘린더</a>
+        <a href="/dashboard" class="active">지표</a>
     </div>
 </nav>
 
 <main class="feed">
     <div class="feed-header">
-        <h2 style="margin:0;font-size:18px">📊 핵심 경제지표</h2>
-        <button class="btn-refresh" onclick="refreshIndicators()">🔄 갱신</button>
+        <span class="feed-count">핵심 경제지표</span>
+        <button class="btn-refresh" onclick="refreshIndicators()">지표 갱신</button>
     </div>
 
     {% if indicators %}
@@ -74,21 +53,20 @@
     </div>
     {% else %}
     <div class="empty">
-        <p>📊 아직 수집된 지표가 없습니다.</p>
-        <p>🔄 갱신 버튼을 눌러 첫 데이터를 가져와보세요.</p>
+        <p class="empty-title">잠시만 기다리면 경제 지표가 표시됩니다</p>
+        <p class="empty-sub">지표 갱신 버튼을 눌러 데이터를 가져올 수 있습니다</p>
     </div>
     {% endif %}
 
-    <div style="margin-top:24px;padding:16px;background:white;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,0.04)">
-        <p style="margin:0;font-size:13px;color:#999">💡 지표 카드를 <b>클릭</b>하면 최근 시계열 그래프를 볼 수 있습니다.</p>
+    <div class="indicator-hint">
+        지표 카드를 <strong>클릭</strong>하면 최근 시계열 그래프를 볼 수 있습니다
     </div>
 </main>
 
-<!-- Chart Modal -->
 <div class="modal-overlay" id="chartModal" onclick="if(event.target===this)closeChart()">
     <div class="modal-box">
         <button class="modal-close" onclick="closeChart()">✕</button>
-        <h3 id="chartTitle" style="margin:0 0 8px;font-size:16px"></h3>
+        <h3 id="chartTitle" style="margin:0 0 12px;font-size:16px;color:var(--color-text)"></h3>
         <div class="chart-wrap"><canvas id="chartCanvas"></canvas></div>
     </div>
 </div>
@@ -98,22 +76,22 @@ let chartInstance = null;
 
 async function refreshIndicators() {
     const btn = document.querySelector('.btn-refresh');
-    btn.textContent = '⏳ 갱신 중...';
+    btn.textContent = '갱신 중...';
     btn.disabled = true;
     try {
         const resp = await fetch('/api/indicators');
         const data = await resp.json();
-        btn.textContent = '✅ 완료';
+        btn.textContent = '완료';
         setTimeout(() => location.reload(), 600);
     } catch(e) {
-        btn.textContent = '❌ 실패';
+        btn.textContent = '다시 시도해주세요';
         btn.disabled = false;
     }
 }
 
 async function showChart(name) {
     document.getElementById('chartModal').classList.add('active');
-    document.getElementById('chartTitle').textContent = '📈 ' + name;
+    document.getElementById('chartTitle').textContent = name + ' 추이';
     try {
         const resp = await fetch('/api/indicator/history/' + encodeURIComponent(name));
         const data = await resp.json();

@@ -10,19 +10,18 @@
 <nav class="topbar">
     <h1>🔭 파수의 등대</h1>
     <div class="tabs">
-        <a href="/">📰 뉴스</a>
-        <a href="/watchlist" class="active">💼 포트폴리오</a>
-        <a href="/calendar">📅 캘린더</a>
-        <a href="/dashboard">📊 지표</a>
+        <a href="/">뉴스</a>
+        <a href="/watchlist" class="active">포트폴리오</a>
+        <a href="/calendar">캘린더</a>
+        <a href="/dashboard">지표</a>
     </div>
 </nav>
 
 <main class="feed">
-    <!-- 추가 폼 -->
     <form class="add-form" onsubmit="addItem(event)">
         <div class="form-row">
             <div class="autocomplete-wrap">
-                <input type="text" id="name" placeholder="종목명 (예: 삼성전자)" required autocomplete="off">
+                <input type="text" id="name" placeholder="종목명 검색 (예: 삼성전자)" required autocomplete="off">
                 <div class="autocomplete-dropdown" id="suggestions"></div>
             </div>
             <input type="text" id="ticker" placeholder="티커 자동입력" readonly class="ticker-readonly">
@@ -32,11 +31,10 @@
                 <option value="ETF">ETF</option>
             </select>
             <input type="hidden" id="type" value="stock">
-            <button type="submit" class="btn-add">+ 추가</button>
+            <button type="submit" class="btn-add">종목 추가</button>
         </div>
     </form>
 
-    <!-- 종목 목록 -->
     <div class="portfolio-table-wrap">
         {% if items %}
         <table class="portfolio-table">
@@ -56,15 +54,15 @@
                     <td class="mono">{{ item.ticker }}</td>
                     <td>{{ item.name }}</td>
                     <td>{{ item.market }}</td>
-                    <td><button class="btn-del" onclick="deleteItem({{ item.id }}, this)">✕</button></td>
+                    <td><button class="btn-del" onclick="deleteItem({{ item.id }}, this)" title="삭제">✕</button></td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
         {% else %}
         <div class="empty">
-            <p>💼 아직 추가된 종목이 없습니다.</p>
-            <p>종목명을 입력하면 자동완성됩니다. ETF도 검색 가능합니다.</p>
+            <p class="empty-title">관심 종목을 추가해보세요</p>
+            <p class="empty-sub">관심 종목을 추가하면 관련 뉴스가 여기에 표시됩니다</p>
         </div>
         {% endif %}
     </div>
@@ -102,7 +100,7 @@ async function fetchSuggestions(q) {
         const results = await resp.json();
         dropdown.innerHTML = '';
         if (results.length === 0) {
-            dropdown.innerHTML = '<div class="ac-item no-result">검색 결과 없음</div>';
+            dropdown.innerHTML = '<div class="ac-item no-result">검색 결과가 없어요</div>';
         } else {
             results.forEach(r => {
                 const div = document.createElement('div');
