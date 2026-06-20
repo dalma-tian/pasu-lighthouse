@@ -1,6 +1,7 @@
 """
-포트폴리오 스크린샷 OCR → 종목명 + 보유수량 + 현재가 추출 + stocks.csv 매칭
+포트폴리오 스크린샷 OCR -> 종목명 추출 + stocks.csv 매칭
 EasyOCR + 3,004종목 DB 퍼지매칭. KRX 모바일 + HTS 모두 지원.
+v2: 종목명 인식에 집중, 수량/현재가 추출 제거.
 """
 import csv, re, os
 from difflib import SequenceMatcher
@@ -57,9 +58,9 @@ def fuzzy_search(name, stock_db, threshold=0.5):
             if nb and sb and len(nb) >= 3:
                 score = max(score, SequenceMatcher(None, nb, sb).ratio())
         
-        # 우선주 패널티 (한국금융지주 > 한국금융지주우)
+        # 우선주 강력 패널티 (한국금융지주 >> 한국금융지주우)
         if '우' in sc and '우' not in nc:
-            bonus -= 0.15
+            bonus -= 0.25
         
         total = score + bonus
         
@@ -118,79 +119,32 @@ def _group_rows(items, threshold):
     return rows
 
 
-def _parse_num(t):
-    """텍스트에서 숫자 추출 (쉼표, 마이너스 처리)"""
-    t = t.replace(',', '').replace('~', '-').replace('D', '0').replace('O', '0')
-    t = re.sub(r'[^0-9\-]', '', t)
-    try: return int(t)
-    except: return None
-
-
 def extract_stocks_from_ocr_results(ocr_results):
     """
-    모든 row에서 (종목명, 보유수량, 현재가) 추출.
-    보유수량 = row에서 가장 작은 숫자 (1~1000)
-    현재가 = row에서 가장 오른쪽 큰 숫자
+    종목명만 추출. 수량/현재가 무시, 종목명 인식 정확도에 집중.
+    2-pass: (1) row 단위 텍스트 (2) 좌측 30% 영역 fallback
     """
     items = _make_items(ocr_results)
     if not items: return []
-    
-    # 2-pass row grouping
-    rows_14 = _group_rows(items, 14)
-    rows_22 = _group_rows(items, 22)
-    all_rows = rows_14 + rows_22
-    
+
     seen_names = set()
     result = []
-    
-    for row in all_rows:
-        row.sort(key=lambda it: it['x'])
-        
-        # 숫자들만 추출
-        nums = []
-        for it in row:
-            val = _parse_num(it['text'])
-            if val is not None and 0 < val < 9999999:
-                nums.append({'val': val, 'x': it['x'], 'raw': it['text']})
-        
-        if not nums:
-            continue
-        
-        # 보유수량 = 가장 작은 숫자 (1~5000)
-        small_nums = [n for n in nums if 1 <= n['val'] <= 5000]
-        qty = min(small_nums, key=lambda n: n['val']) if small_nums else None
-        
-        # 현재가 = 가장 오른쪽에 있는 4~7자리 숫자
-        right_nums = sorted(nums, key=lambda n: -n['x'])
-        price = None
-        for n in right_nums:
-            if 1000 <= n['val'] <= 9999999:
-                price = n['val']
-                break
-        
-        # 종목명
-        qty_x = qty['x'] if qty else 99999
-        name_parts = [it['text'] for it in row if it['x'] < qty_x and _looks_like_stock(it['text'])]
-        
-        # fallback: 수량 없으면 row의 가장 왼쪽 텍스트
-        if not name_parts:
+
+    # Pass 1: row grouping — 각 row의 텍스트(한글/영문)에서 종목명 추출
+    for threshold in [14, 22]:
+        rows = _group_rows(items, threshold)
+        for row in rows:
+            row.sort(key=lambda it: it['x'])
             name_parts = [it['text'] for it in row if _looks_like_stock(it['text'])]
-        
-        if not name_parts:
-            continue
-        
-        name = ' '.join(name_parts)
-        key = name.strip().upper()
-        if key in seen_names: continue
-        seen_names.add(key)
-        
-        result.append({
-            'name': name,
-            'qty': qty['val'] if qty else 0,
-            'price': price or 0,
-        })
-    
-    # Fallback: 왼쪽 30% 영역에서 종목명만 추출
+            if not name_parts:
+                continue
+            name = ' '.join(name_parts)
+            key = name.strip().upper()
+            if key in seen_names: continue
+            seen_names.add(key)
+            result.append({'name': name, 'qty': 0, 'price': 0})
+
+    # Pass 2: 좌측 30% 영역 fallback — row grouping이 놓친 종목
     max_x = max(it['x'] for it in items) if items else 500
     left = sorted(
         [it for it in items if it['x'] < max_x * 0.3 and _looks_like_stock(it['text'])],
@@ -204,7 +158,7 @@ def extract_stocks_from_ocr_results(ocr_results):
             else:
                 groups.append(cur); cur = [it]
         groups.append(cur)
-        
+
         SOLO = {'ACE','TIGER','KODEX','TIME','TIIME','HANARO','RISE','SOL',
                 'KoAct','KIWOOM','1Q','PLUS','KB','TIGER ETF'}
         for grp in groups:
@@ -215,7 +169,7 @@ def extract_stocks_from_ocr_results(ocr_results):
             if key not in seen_names:
                 seen_names.add(key)
                 result.append({'name': name, 'qty': 0, 'price': 0})
-    
+
     return result
 
 

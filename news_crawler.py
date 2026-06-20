@@ -208,13 +208,85 @@ def crawl_naver(db):
     return new_count
 
 
+def crawl_watchlist_news(db):
+    """워치리스트 종목별 뉴스 수집 — 각 종목명으로 Google News 검색"""
+    import urllib.parse
+    import time
+    
+    stocks = db.execute('SELECT name, ticker FROM watchlist').fetchall()
+    if not stocks:
+        print("[watchlist-news] 관심종목 없음, 건너뜀")
+        return 0
+    
+    new_count = 0
+    for name, ticker in stocks:
+        # 검색어: "종목명 주식" (ex: 삼성전자 주식)
+        query = f"{name} 주식"
+        encoded = urllib.parse.quote(query)
+        feed_url = f"https://news.google.com/rss/search?q={encoded}&hl=ko&gl=KR&ceid=KR:ko"
+        
+        try:
+            req = urllib.request.Request(feed_url, headers=HEADERS)
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                content = resp.read().decode('utf-8', errors='replace')
+            root = ET.fromstring(content)
+            
+            added_for_stock = 0
+            for item in root.findall('.//item'):
+                title_el = item.find('title')
+                link_el = item.find('link')
+                pubdate_el = item.find('pubDate')
+                source_el = item.find('source')
+                
+                if title_el is None or not title_el.text:
+                    continue
+                
+                raw = title_el.text.strip()
+                source = extract_source(raw)
+                if source == '구글뉴스' and source_el is not None and source_el.text:
+                    source = source_el.text.strip()
+                title = clean_title(raw)
+                link = link_el.text.strip() if link_el is not None and link_el.text else ''
+                if not link:
+                    continue
+                
+                published_at = parse_pubdate(pubdate_el.text if pubdate_el is not None else None)
+                
+                # 중복 체크
+                exists = db.execute('SELECT id FROM news WHERE link = ?', (link,)).fetchone()
+                if exists:
+                    continue
+                
+                from scorer import score, to_stars
+                imp = score(title, source, published_at)
+                stars = to_stars(imp)
+                db.execute(
+                    'INSERT INTO news (title, link, source, published_at, importance, stars) VALUES (?,?,?,?,?,?)',
+                    (title, link, source, published_at, imp, stars)
+                )
+                added_for_stock += 1
+            
+            if added_for_stock > 0:
+                print(f"[watchlist-news] {name}: {added_for_stock}건")
+            new_count += added_for_stock
+            
+            # Rate limit: Google News에 연속 요청 방지
+            time.sleep(1.5)
+            
+        except Exception as e:
+            print(f"[watchlist-news] {name} 크롤링 실패: {e}")
+    
+    return new_count
+
+
 def crawl():
     db = sqlite3.connect(DB_PATH)
     n_google = crawl_google(db)
     n_naver = crawl_naver(db)
+    n_watchlist = crawl_watchlist_news(db)
     db.commit()
-    total = n_google + n_naver
-    print(f"[{datetime.now().strftime('%H:%M:%S')}] Google:{n_google} + Naver:{n_naver} = {total} new")
+    total = n_google + n_naver + n_watchlist
+    print(f"[{datetime.now().strftime('%H:%M:%S')}] Google:{n_google} + Naver:{n_naver} + Watchlist:{n_watchlist} = {total} new")
     db.close()
     return total
 
