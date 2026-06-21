@@ -173,7 +173,89 @@ def extract_stocks_from_ocr_results(ocr_results):
     return result
 
 
-def process_portfolio_image(image_path, stock_db=None):
+def _format_ocr_rows(ocr_results):
+    """OCR 결과를 row 단위 텍스트로 포맷 (LLM 입력용)"""
+    items = _make_items(ocr_results)
+    if not items: return ""
+    
+    lines = []
+    for threshold in [12, 18]:
+        rows = _group_rows(items, threshold)
+        for row in rows:
+            row.sort(key=lambda it: it['x'])
+            line = " | ".join(it['text'] for it in row)
+            if line.strip():
+                lines.append(line)
+        if len(lines) >= 5:
+            break
+    
+    return "\n".join(lines)
+
+
+def _llm_extract_stocks(ocr_text, api_key=None):
+    """LLM에게 OCR 텍스트를 보내 종목명만 추출"""
+    import json, os
+    import urllib.request
+    
+    if not api_key:
+        api_key = os.environ.get('LLM_API_KEY', os.environ.get('DEEPSEEK_API_KEY', os.environ.get('OPENAI_API_KEY', '')))
+    if not api_key:
+        return None  # API 키 없으면 LLM 생략
+    
+    base_url = os.environ.get('LLM_BASE_URL', 'https://api.deepseek.com/v1')
+    model = os.environ.get('LLM_MODEL', 'deepseek-chat')
+    
+    prompt = f"""You are extracting stock/ETF names from a Korean brokerage app screenshot OCR result.
+
+Below are text items detected by OCR from a "보유종목/잔고" (holdings/balance) screen.
+Each line represents one row of text from the screen, with items separated by "|".
+
+OCR rows:
+{ocr_text}
+
+Your task: Extract ONLY the actual stock/ETF names held in the portfolio. 
+
+Rules:
+- IGNORE: UI labels (메뉴, 관심종목, 계좌, 주문, 차트, 현재가, 국내잔고, 미체결, 예수금, 주문가능금액, 유의, 계산기, 융자별, 융자합, 나스닥, S&P500, 지수, 채팅), tab names (키움 잔고, 타사 잔고), account info (계좌번호, 사람이름), financial figures (손익, 매입, 평가, 수익률, 원, %), column headers (종목명, 매입가, 현재가, 보유수량, 평가손익, 수익률), ranking labels (MY랭킹, 순위)
+- IMPORTANT: If a stock/ETF name is split across multiple items on the same row, COMBINE them. Example: "KODEX" + "코스닥150" → "KODEX 코스닥150". "HANARO Fn" + "K-반도체" → "HANARO Fn K-반도체".
+- Include both Korean stocks (삼성전자, NAVER) and ETFs (KODEX, TIGER, HANARO, ACE, etc.)
+- If OCR slightly misread a name (e.g., "한화오선" → "한화오션", "한국금움지주" → "한국금융지주"), correct it to the most likely real stock name.
+
+Return ONLY a JSON array of strings, nothing else. Example: ["삼성전자", "NAVER", "KODEX 코스닥150"]"""
+
+    data = json.dumps({
+        "model": model,
+        "messages": [{"role": "user", "content": prompt}],
+        "temperature": 0,
+        "max_tokens": 200
+    }).encode('utf-8')
+    
+    req = urllib.request.Request(
+        f"{base_url}/chat/completions",
+        data=data,
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {api_key}"
+        }
+    )
+    
+    try:
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            body = json.loads(resp.read().decode('utf-8'))
+            content = body['choices'][0]['message']['content'].strip()
+            # JSON 배열만 추출 (마크다운 코드블록 제거)
+            if content.startswith('```'):
+                content = content.split('\n', 1)[1]
+                if content.endswith('```'):
+                    content = content.rsplit('\n', 1)[0]
+            names = json.loads(content)
+            return names if isinstance(names, list) else None
+    except Exception as e:
+        print(f"[LLM extract] Failed: {e}")
+        return None
+
+
+def process_portfolio_image(image_path, stock_db=None, api_key=None):
     import easyocr, numpy as np
     from PIL import Image
     
@@ -185,12 +267,35 @@ def process_portfolio_image(image_path, stock_db=None):
         img = img.resize((w * 2, h * 2), Image.LANCZOS)
     
     reader = easyocr.Reader(['ko', 'en'], gpu=False)
-    results = reader.readtext(np.array(img))
-    raw = extract_stocks_from_ocr_results(results)
+    ocr_results = reader.readtext(np.array(img))
     
+    # 1. LLM 기반 추출 시도
+    ocr_text = _format_ocr_rows(ocr_results)
+    llm_names = _llm_extract_stocks(ocr_text, api_key=api_key)
+    
+    if llm_names:
+        # LLM 결과를 fuzzy 매칭
+        matched, seen_tickers = [], set()
+        for name in llm_names:
+            m = fuzzy_search(name, stock_db, threshold=0.55)
+            if m:
+                ticker, sname, market, score = m
+                if ticker in seen_tickers: continue
+                seen_tickers.add(ticker)
+                matched.append({
+                    'ticker': ticker, 'name': sname, 'market': market,
+                    'quantity': 0, 'price': 0,
+                    'confidence': round(min(score, 1.0), 2),
+                    'raw_ocr': name,
+                    'method': 'llm'
+                })
+        return matched
+    
+    # 2. LLM 실패 시 기존 규칙 기반 fallback
+    raw = extract_stocks_from_ocr_results(ocr_results)
     matched, seen_tickers = [], set()
     for stock in raw:
-        m = fuzzy_search(stock['name'], stock_db)
+        m = fuzzy_search(stock['name'], stock_db, threshold=0.65)
         if m:
             ticker, sname, market, score = m
             if ticker in seen_tickers: continue
@@ -200,6 +305,7 @@ def process_portfolio_image(image_path, stock_db=None):
                 'quantity': stock['qty'],
                 'price': stock['price'],
                 'confidence': round(min(score, 1.0), 2),
-                'raw_ocr': stock['name']
+                'raw_ocr': stock['name'],
+                'method': 'rule'
             })
     return matched

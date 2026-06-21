@@ -184,7 +184,9 @@ def api_portfolio_ocr():
     
     try:
         from portfolio_ocr import process_portfolio_image
-        results = process_portfolio_image(tmp_path)
+        import os as _os
+        api_key = _os.environ.get('LLM_API_KEY', _os.environ.get('OPENAI_API_KEY', ''))
+        results = process_portfolio_image(tmp_path, api_key=api_key)
         return jsonify({'status': 'ok', 'stocks': results})
     except ImportError:
         return jsonify({'status': 'error', 'message': 'OCR 기능은 로컬 환경에서만 사용 가능합니다 (Render 미지원). 로컬에서 실행해주세요.'}), 503
